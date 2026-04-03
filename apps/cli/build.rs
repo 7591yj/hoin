@@ -20,7 +20,7 @@ fn main() {
 
     let generated = match env::var("HOIN_EMBED_MODEL") {
         Ok(model_name) if !model_name.trim().is_empty() => {
-            build_embedded_model_source(&workspace_dir, &models_dir, model_name.trim())
+            build_embedded_model_source(workspace_dir, models_dir.as_path(), model_name.trim())
         }
         _ => no_model_source(),
     };
