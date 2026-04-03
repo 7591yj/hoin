@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: Rust checks (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+      - name: Lint
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace
+
+  detect-model:
+    name: Detect model workspace
+    runs-on: ubuntu-latest
+    outputs:
+      has_model: ${{ steps.detect.outputs.has_model }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: detect
+        name: Check for models workspace
+        shell: bash
+        run: |
+          models_json="$(./scripts/list-models.sh)"
+
+          if [ "${models_json}" != "[]" ]; then
+            echo "has_model=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_model=false" >> "$GITHUB_OUTPUT"
+            echo "No releasable models found; skipping model checks."
+          fi
+
+  model:
+    name: Model export checks
+    runs-on: ubuntu-latest
+    needs: detect-model
+    if: needs.detect-model.outputs.has_model == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run model export checks
+        shell: bash
+        run: |
+          ./scripts/build-models.sh verify
