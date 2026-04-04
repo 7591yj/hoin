@@ -1,3 +1,6 @@
+//! holo-hoin model types for mapping API responses to organized metadata
+//! This module is intended to be consumed by the holo-hoin model only
+
 // Character names, group names, and related intellectual property used in this file
 // are owned by COVER Corp. and used here under the hololive production Derivative Works
 // Guidelines.
@@ -8,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 /// Raw response shape returned by the holo-hoin inference API
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct HoloHoinApiResponse {
+pub(crate) struct HoloHoinApiResponse {
     pub file_name: String,
     pub confidence: f32,
     pub char_name: String,
@@ -35,24 +38,8 @@ pub struct HoloHoinResult {
     pub meta: HoloHoinMeta,
 }
 
-impl HoloHoinResult {
-    pub fn from_api(response: HoloHoinApiResponse) -> Self {
-        Self {
-            file_name: response.file_name,
-            confidence: response.confidence,
-            meta: HoloHoinMeta {
-                char_name: response.char_name,
-                generation: response.generation,
-                group: map_generation_group(response.affiliation, response.generation)
-                    .map(str::to_owned),
-                affiliation: map_affiliation(response.affiliation).map(str::to_owned),
-            },
-        }
-    }
-}
-
 /// Maps an affiliation integer from the API to its label
-pub fn map_affiliation(id: u32) -> Option<&'static str> {
+pub(crate) fn map_affiliation(id: u32) -> Option<&'static str> {
     match id {
         0 => Some("JP"),
         1 => Some("EN"),
@@ -63,7 +50,7 @@ pub fn map_affiliation(id: u32) -> Option<&'static str> {
 }
 
 /// Maps (affiliation, generation) integers from the API to a group label.
-pub fn map_generation_group(affiliation: u32, generation: u32) -> Option<&'static str> {
+pub(crate) fn map_generation_group(affiliation: u32, generation: u32) -> Option<&'static str> {
     match (affiliation, generation) {
         // JP (0)
         (0, 3) => Some("Hololive Fantasy"),
@@ -88,6 +75,22 @@ pub fn map_generation_group(affiliation: u32, generation: u32) -> Option<&'stati
     }
 }
 
+impl From<HoloHoinApiResponse> for HoloHoinResult {
+    fn from(response: HoloHoinApiResponse) -> Self {
+        Self {
+            file_name: response.file_name,
+            confidence: response.confidence,
+            meta: HoloHoinMeta {
+                char_name: response.char_name,
+                generation: response.generation,
+                group: map_generation_group(response.affiliation, response.generation)
+                    .map(str::to_owned),
+                affiliation: map_affiliation(response.affiliation).map(str::to_owned),
+            },
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -101,7 +104,7 @@ mod tests {
             generation: 4,
             affiliation: 0,
         };
-        let result = HoloHoinResult::from_api(response);
+        let result = HoloHoinResult::from(response);
         assert_eq!(result.meta.group.as_deref(), Some("holoForce"));
         assert_eq!(result.meta.affiliation.as_deref(), Some("JP"));
     }
@@ -115,7 +118,7 @@ mod tests {
             generation: 99,
             affiliation: 99,
         };
-        let result = HoloHoinResult::from_api(response);
+        let result = HoloHoinResult::from(response);
         assert_eq!(result.meta.group, None);
         assert_eq!(result.meta.affiliation, None);
     }
@@ -138,4 +141,23 @@ mod tests {
         assert_eq!(json["meta"]["group"], "holoForce");
         assert_eq!(json["meta"]["affiliation"], "JP");
     }
+}
+
+#[test]
+fn from_api_response_into_works() {
+    let api = HoloHoinApiResponse {
+        file_name: "test.png".to_owned(),
+        confidence: 0.92,
+        char_name: "Kanata".to_owned(),
+        generation: 4,
+        affiliation: 0,
+    };
+
+    let result: HoloHoinResult = api.into();
+
+    assert_eq!(result.file_name, "test.png");
+    assert_eq!(result.meta.char_name, "Kanata");
+    assert_eq!(result.meta.generation, 4);
+    assert_eq!(result.meta.group.as_deref(), Some("holoForce"));
+    assert_eq!(result.meta.affiliation.as_deref(), Some("JP"));
 }
