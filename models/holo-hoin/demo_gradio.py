@@ -21,8 +21,8 @@ from PIL import Image
 # ──────────────────────────────────────────────
 
 CHECKPOINT_DIR = Path("./checkpoints")
-MODEL_FP32 = CHECKPOINT_DIR / "best_model.pth"
-MODEL_FP16 = CHECKPOINT_DIR / "best_model_fp16.pth"
+MODEL_FP32 = CHECKPOINT_DIR / "holo-hoin.pth"
+MODEL_FP16 = CHECKPOINT_DIR / "holo-hoin_fp16.pth"
 CLASS_MAP_PATH = CHECKPOINT_DIR / "class_map.json"
 IMG_SIZE = 224
 
@@ -201,7 +201,7 @@ with gr.Blocks(title="HoloScope Classification UI") as demo:
                 choices=["FP32", "FP16"], 
                 value="FP16", 
                 label="추론 모델 포맷 (FP32/FP16)", 
-                info="* FP32: best_model.pth / FP16: best_model_fp16.pth"
+                info="* FP32: holo-hoin.pth / FP16: holo-hoin_fp16.pth"
             )
             submit_btn = gr.Button("분류 (Predict)", variant="primary")
             

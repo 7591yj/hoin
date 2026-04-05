@@ -25,10 +25,14 @@ from pydantic import BaseModel
 # 설정
 # ──────────────────────────────────────────────
 
-CHECKPOINT_DIR  = Path("./checkpoints")
-MODEL_PATH      = CHECKPOINT_DIR / "best_model.pth"
-ONNX_PATH       = CHECKPOINT_DIR / "best_model.onnx"
+BASE_DIR        = Path(__file__).resolve().parent
+CHECKPOINT_DIR  = BASE_DIR / "checkpoints"
+MODEL_PATH      = CHECKPOINT_DIR / "holo-hoin.pth"
+ONNX_PATH       = CHECKPOINT_DIR / "holo-hoin.onnx"
 CLASS_MAP_PATH  = CHECKPOINT_DIR / "class_map.json"
+FALLBACK_ONNX_PATH = BASE_DIR / "holo-hoin.onnx"
+FALLBACK_CLASS_MAP_PATH = BASE_DIR / "class_map.json"
+DEMO_DIR        = BASE_DIR / "demo"
 IMG_SIZE        = 224
 TOP_K           = 5
 
@@ -39,6 +43,13 @@ _ORT_PROVIDERS = ["ROCMExecutionProvider", "MIGraphXExecutionProvider", "CPUExec
 def _softmax(x: np.ndarray) -> np.ndarray:
     e = np.exp(x - x.max())
     return e / e.sum()
+
+
+def _first_existing_path(*paths: Path) -> Path:
+    for path in paths:
+        if path.exists():
+            return path
+    return paths[0]
 
 
 # ──────────────────────────────────────────────
@@ -175,15 +186,19 @@ class ModelLoader:
         return cls._instance
 
     def _load(self):
-        with open(CLASS_MAP_PATH, encoding="utf-8") as f:
+        class_map_path = _first_existing_path(CLASS_MAP_PATH, FALLBACK_CLASS_MAP_PATH)
+
+        with open(class_map_path, encoding="utf-8") as f:
             raw = json.load(f)
         self.idx_to_class = {int(k): v for k, v in raw.items()}
         num_classes = len(self.idx_to_class)
 
-        if ONNX_PATH.exists():
-            self._load_onnx()
+        onnx_path = _first_existing_path(ONNX_PATH, FALLBACK_ONNX_PATH)
+
+        if onnx_path.exists():
+            self._load_onnx(onnx_path)
         else:
-            print(f"ONNX 모델 없음 — PyTorch fallback 사용 ({ONNX_PATH})")
+            print(f"ONNX 모델 없음 — PyTorch fallback 사용 ({onnx_path})")
             self._load_torch(num_classes)
 
         # ToTensorV2 불필요 — numpy transpose로 대체
@@ -195,11 +210,11 @@ class ModelLoader:
 
         print(f"모델 로드 완료: {num_classes}개 클래스, backend={self.backend}")
 
-    def _load_onnx(self):
+    def _load_onnx(self, onnx_path: Path):
         import onnxruntime as ort
         available = ort.get_available_providers()
         providers = [p for p in _ORT_PROVIDERS if p in available]
-        self.session = ort.InferenceSession(str(ONNX_PATH), providers=providers)
+        self.session = ort.InferenceSession(str(onnx_path), providers=providers)
         self.backend = f"onnx+{providers[0]}"
         print(f"ORT providers: {providers}")
 
@@ -307,7 +322,7 @@ async def predict(file: UploadFile = File(...)):
     )
 
 
-app.mount("/", StaticFiles(directory="./demo", html=True), name="demo")
+app.mount("/", StaticFiles(directory=str(DEMO_DIR), html=True), name="demo")
 
 
 if __name__ == "__main__":

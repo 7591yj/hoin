@@ -264,9 +264,9 @@ def train(args):
     resume_phase, resume_epoch = 1, 0
     ckpt = None
 
-    # --finetune: best_model.pth를 로드해 Phase 2부터 추가학습
+    # --finetune: holo-hoin.pth를 로드해 Phase 2부터 추가학습
     if args.finetune:
-        best_pth = save_dir / "best_model.pth"
+        best_pth = save_dir / "holo-hoin.pth"
         if not best_pth.exists():
             raise FileNotFoundError(f"--finetune 모드인데 {best_pth} 가 없습니다.")
         model.load_state_dict(torch.load(best_pth, weights_only=True, map_location=device))
@@ -333,7 +333,7 @@ def train(args):
             if val_acc > best_val_acc:
                 best_val_acc = val_acc
                 patience_counter = 0
-                torch.save(model.state_dict(), save_dir / "best_model.pth")
+                torch.save(model.state_dict(), save_dir / "holo-hoin.pth")
                 print(f"  → best 저장 (val_acc: {val_acc:.4f})")
             else:
                 patience_counter += 1
@@ -391,7 +391,7 @@ def train(args):
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             patience_counter = 0
-            torch.save(model.state_dict(), save_dir / "best_model.pth")
+            torch.save(model.state_dict(), save_dir / "holo-hoin.pth")
             print(f"  → best 저장 (val_acc: {val_acc:.4f})")
         else:
             patience_counter += 1
@@ -407,7 +407,7 @@ def train(args):
     # ────────────────────────────────
     print(f"\n{'─'*40}")
     print("테스트 세트 평가")
-    model.load_state_dict(torch.load(save_dir / "best_model.pth", weights_only=True))
+    model.load_state_dict(torch.load(save_dir / "holo-hoin.pth", weights_only=True))
     test_loss, test_acc, per_class_acc = test_epoch(model, test_loader, criterion, device, use_amp, num_classes)
     print(f"  test_loss: {test_loss:.4f}  test_acc: {test_acc:.4f}")
 
@@ -437,7 +437,7 @@ def train(args):
         json.dump(config, f, indent=2)
 
     print(f"학습 완료! 최고 val_acc: {best_val_acc:.4f}")
-    print(f"모델 저장 위치: {save_dir}/best_model.pth")
+    print(f"모델 저장 위치: {save_dir}/holo-hoin.pth")
 
 
 if __name__ == "__main__":
@@ -461,7 +461,7 @@ if __name__ == "__main__":
                         help="AMP(mixed precision) 비활성화")
     # ── 학습 옵션 ──────────────────────────────────────
     parser.add_argument("--finetune",        action="store_true",
-                        help="best_model.pth 로드 후 Phase 2 추가학습 (새 데이터 추가 시)")
+                        help="holo-hoin.pth 로드 후 Phase 2 추가학습 (새 데이터 추가 시)")
     parser.add_argument("--patience",       type=int,   default=7,
                         help="Early stopping patience (0=비활성화)")
     parser.add_argument("--wandb",          action="store_true",

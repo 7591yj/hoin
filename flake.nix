@@ -25,6 +25,7 @@
             cargo
             clippy
             git
+            git-lfs
             just
             nixfmt
             pkg-config

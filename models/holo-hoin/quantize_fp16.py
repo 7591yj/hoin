@@ -26,8 +26,8 @@ from tqdm import tqdm
 from dataset import HoloDataset, get_val_transforms
 
 CHECKPOINT_DIR = Path("checkpoints")
-FP32_PATH = CHECKPOINT_DIR / "best_model.pth"
-FP16_PATH = CHECKPOINT_DIR / "best_model_fp16.pth"
+FP32_PATH = CHECKPOINT_DIR / "holo-hoin.pth"
+FP16_PATH = CHECKPOINT_DIR / "holo-hoin_fp16.pth"
 CLASS_MAP_PATH = CHECKPOINT_DIR / "class_map.json"
 
 

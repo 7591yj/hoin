@@ -1,9 +1,10 @@
 """
-best_model.pth → best_model.onnx 변환 스크립트
+holo-hoin.pth → holo-hoin.onnx 변환 스크립트
 
 사용법:
     uv run python export_onnx.py
     uv run python export_onnx.py --checkpoint-dir ./checkpoints --opset 17
+    uv run python export_onnx.py --checkpoint-dir ./checkpoints --output-dir .
 """
 
 import json
@@ -17,9 +18,18 @@ import timm
 
 def export(args):
     ckpt_dir = Path(args.checkpoint_dir)
-    model_path = ckpt_dir / "best_model.pth"
+    output_dir = Path(args.output_dir)
+    model_path = ckpt_dir / "holo-hoin.pth"
     class_map_path = ckpt_dir / "class_map.json"
-    out_path = ckpt_dir / "best_model.onnx"
+    out_path = output_dir / "holo-hoin.onnx"
+    sidecar_path = output_dir / "holo-hoin.onnx.data"
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    if out_path.exists():
+        out_path.unlink()
+    if sidecar_path.exists():
+        sidecar_path.unlink()
 
     with open(class_map_path, encoding="utf-8") as f:
         num_classes = len(json.load(f))
@@ -46,6 +56,7 @@ def export(args):
         dynamic_axes={"input": {0: "batch"}, "logits": {0: "batch"}},
         opset_version=args.opset,
     )
+
     print(f"저장 완료: {out_path}")
 
     # onnxruntime으로 수치 검증
@@ -68,6 +79,7 @@ def export(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Swin-T → ONNX 변환")
     parser.add_argument("--checkpoint-dir", default="./checkpoints")
+    parser.add_argument("--output-dir", default="./checkpoints")
     parser.add_argument("--opset", type=int, default=18)
     args = parser.parse_args()
     export(args)

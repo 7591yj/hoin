@@ -199,7 +199,7 @@ def main(args):
     # 모델 로드 (62클래스 구조 그대로)
     model = timm.create_model("swin_tiny_patch4_window7_224",
                                pretrained=False, num_classes=num_classes)
-    best_pth = save_dir / "best_model.pth"
+    best_pth = save_dir / "holo-hoin.pth"
     model.load_state_dict(torch.load(best_pth, weights_only=True, map_location=device))
     model = model.to(device)
     print(f"모델 로드: {best_pth}")
@@ -217,7 +217,7 @@ def main(args):
 
     best_val_acc = 0.0
     patience_counter = 0
-    ft_best_pth = save_dir / "best_model_ft.pth"
+    ft_best_pth = save_dir / "holo-hoin_ft.pth"
 
     print(f"\n{'─'*45}")
     print(f"Fine-tune 시작: {args.epochs} epochs | lr={args.lr}")
@@ -245,8 +245,8 @@ def main(args):
 
     print(f"\nFine-tune 완료! 최고 val_acc: {best_val_acc:.4f}")
     print(f"저장 위치: {ft_best_pth}")
-    print(f"\n※ 전체 62클래스 추론에 사용하려면 best_model.pth 를 교체하세요:")
-    print(f"  cp {ft_best_pth} {save_dir}/best_model.pth")
+    print(f"\n※ 전체 62클래스 추론에 사용하려면 holo-hoin.pth 를 교체하세요:")
+    print(f"  cp {ft_best_pth} {save_dir}/holo-hoin.pth")
 
 
 if __name__ == "__main__":
