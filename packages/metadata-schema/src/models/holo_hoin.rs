@@ -1,5 +1,21 @@
-//! holo-hoin model types for mapping API responses to organized metadata
-//! This module is intended to be consumed by the holo-hoin model only
+//! holo-hoin model types for mapping API responses to organized metadata.
+//! This module is intended to be consumed by the holo-hoin model only.
+//!
+//! holo-hoin inference API reference: <https://github.com/faransansj/anihoin>
+//!
+//! POST /predict response shape:
+//! ```json
+//! {
+//!   "file_name": "gura.jpg",
+//!   "confidence": 0.9821,
+//!   "meta": {
+//!     "char_name": "Gawr Gura",
+//!     "generation": 1,
+//!     "group": "Myth",
+//!     "affiliation": "EN"
+//!   }
+//! }
+//! ```
 
 // Character names, group names, and related intellectual property used in this file
 // are owned by COVER Corp. and used here under the hololive production Derivative Works
@@ -9,70 +25,50 @@
 
 use serde::{Deserialize, Serialize};
 
-/// Raw response shape returned by the holo-hoin inference API
+/// Branch affiliation as returned by the holo-hoin API.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum Affiliation {
+    JP,
+    EN,
+    IND,
+}
+
+/// Nested `meta` object within the holo-hoin API response.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub(crate) struct HoloHoinCharMeta {
+    pub char_name: String,
+    /// Generation number within the branch (0-indexed for JP 0期生).
+    /// `None` for units not tied to a numbered generation (e.g. DEV_IS ReGLOSS).
+    pub generation: Option<u32>,
+    /// Unit/group name (e.g. `"Myth"`, `"holoX"`, `"ReGLOSS"`).
+    /// `None` for members without a named sub-unit.
+    pub group: Option<String>,
+    pub affiliation: Option<Affiliation>,
+}
+
+/// Raw response shape returned by `POST /predict` on the holo-hoin inference API.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub(crate) struct HoloHoinApiResponse {
     pub file_name: String,
     pub confidence: f32,
-    pub char_name: String,
-    pub generation: u32,
-    pub affiliation: u32,
+    pub meta: HoloHoinCharMeta,
 }
 
-/// Resolved metadata stored in the result document
+/// Resolved metadata stored in the result document.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct HoloHoinMeta {
     pub char_name: String,
-    pub generation: u32,
-    /// Derived from generation via [map_generation_group]; None if unmapped
+    pub generation: Option<u32>,
     pub group: Option<String>,
-    /// Derived from affiliation int via [map_affiliation]; None if unmapped
-    pub affiliation: Option<String>,
+    pub affiliation: Option<Affiliation>,
 }
 
-/// Final result document
+/// Final result document produced from a holo-hoin API response.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct HoloHoinResult {
     pub file_name: String,
     pub confidence: f32,
     pub meta: HoloHoinMeta,
-}
-
-/// Maps an affiliation integer from the API to its label
-pub(crate) fn map_affiliation(id: u32) -> Option<&'static str> {
-    match id {
-        0 => Some("JP"),
-        1 => Some("EN"),
-        2 => Some("ID"),
-        3 => Some("DEV_IS"),
-        _ => None,
-    }
-}
-
-/// Maps (affiliation, generation) integers from the API to a group label.
-pub(crate) fn map_generation_group(affiliation: u32, generation: u32) -> Option<&'static str> {
-    match (affiliation, generation) {
-        // JP (0)
-        (0, 3) => Some("Hololive Fantasy"),
-        (0, 4) => Some("holoForce"),
-        (0, 5) => Some("holoFive"),
-        (0, 6) => Some("holoX"),
-        (0, 99) => Some("GAMERS"),
-        // EN (1)
-        (1, 1) => Some("Myth"),
-        (1, 2) => Some("Promise"),
-        (1, 3) => Some("Advent"),
-        (1, 4) => Some("Justice"),
-        // ID (2)
-        (2, 1) => Some("AREA15"),
-        (2, 2) => Some("HOLORO"),
-        (2, 3) => Some("HOLOH3RO"),
-        // DEV_IS (3)
-        (3, 1) => Some("ReGLOSS"),
-        (3, 2) => Some("FLOW GLOW"),
-        // default
-        _ => None,
-    }
 }
 
 impl From<HoloHoinApiResponse> for HoloHoinResult {
@@ -81,11 +77,10 @@ impl From<HoloHoinApiResponse> for HoloHoinResult {
             file_name: response.file_name,
             confidence: response.confidence,
             meta: HoloHoinMeta {
-                char_name: response.char_name,
-                generation: response.generation,
-                group: map_generation_group(response.affiliation, response.generation)
-                    .map(str::to_owned),
-                affiliation: map_affiliation(response.affiliation).map(str::to_owned),
+                char_name: response.meta.char_name,
+                generation: response.meta.generation,
+                group: response.meta.group,
+                affiliation: response.meta.affiliation,
             },
         }
     }
@@ -95,30 +90,70 @@ impl From<HoloHoinApiResponse> for HoloHoinResult {
 mod tests {
     use super::*;
 
-    #[test]
-    fn from_api_resolves_known_mappings() {
-        let response = HoloHoinApiResponse {
+    fn make_response(
+        char_name: &str,
+        generation: Option<u32>,
+        group: Option<&str>,
+        affiliation: Option<Affiliation>,
+    ) -> HoloHoinApiResponse {
+        HoloHoinApiResponse {
             file_name: "test.png".to_owned(),
             confidence: 0.99,
-            char_name: "Kanata".to_owned(),
-            generation: 4,
-            affiliation: 0,
-        };
-        let result = HoloHoinResult::from(response);
-        assert_eq!(result.meta.group.as_deref(), Some("holoForce"));
-        assert_eq!(result.meta.affiliation.as_deref(), Some("JP"));
+            meta: HoloHoinCharMeta {
+                char_name: char_name.to_owned(),
+                generation,
+                group: group.map(str::to_owned),
+                affiliation,
+            },
+        }
     }
 
     #[test]
-    fn from_api_unknown_mappings_are_null() {
-        let response = HoloHoinApiResponse {
-            file_name: "test.png".to_owned(),
-            confidence: 0.5,
-            char_name: "Unknown".to_owned(),
-            generation: 99,
-            affiliation: 99,
-        };
-        let result = HoloHoinResult::from(response);
+    fn from_api_jp_numbered_generation() {
+        // JP 4기 holoForce member
+        let api = make_response("Amane Kanata", Some(4), Some("holoForce"), Some(Affiliation::JP));
+        let result = HoloHoinResult::from(api);
+        assert_eq!(result.meta.char_name, "Amane Kanata");
+        assert_eq!(result.meta.generation, Some(4));
+        assert_eq!(result.meta.group.as_deref(), Some("holoForce"));
+        assert_eq!(result.meta.affiliation, Some(Affiliation::JP));
+    }
+
+    #[test]
+    fn from_api_dev_is_no_generation() {
+        // DEV_IS ReGLOSS — generation is None
+        let api = make_response("Hiodoshi Ao", None, Some("ReGLOSS"), Some(Affiliation::JP));
+        let result = HoloHoinResult::from(api);
+        assert_eq!(result.meta.generation, None);
+        assert_eq!(result.meta.group.as_deref(), Some("ReGLOSS"));
+        assert_eq!(result.meta.affiliation, Some(Affiliation::JP));
+    }
+
+    #[test]
+    fn from_api_en_myth() {
+        // EN Myth (1기)
+        let api = make_response("Gawr Gura", Some(1), Some("Myth"), Some(Affiliation::EN));
+        let result = HoloHoinResult::from(api);
+        assert_eq!(result.meta.generation, Some(1));
+        assert_eq!(result.meta.group.as_deref(), Some("Myth"));
+        assert_eq!(result.meta.affiliation, Some(Affiliation::EN));
+    }
+
+    #[test]
+    fn from_api_id_no_group() {
+        // ID branch members have no sub-unit group
+        let api = make_response("Moona Hoshinova", Some(1), None, Some(Affiliation::IND));
+        let result = HoloHoinResult::from(api);
+        assert_eq!(result.meta.group, None);
+        assert_eq!(result.meta.affiliation, Some(Affiliation::IND));
+    }
+
+    #[test]
+    fn from_api_unknown_character() {
+        // Unrecognised character falls back to None fields
+        let api = make_response("Others", None, None, None);
+        let result = HoloHoinResult::from(api);
+        assert_eq!(result.meta.generation, None);
         assert_eq!(result.meta.group, None);
         assert_eq!(result.meta.affiliation, None);
     }
@@ -126,38 +161,28 @@ mod tests {
     #[test]
     fn result_serializes_to_expected_shape() {
         let result = HoloHoinResult {
-            file_name: "test.png".to_owned(),
-            confidence: 0.99,
+            file_name: "gura.jpg".to_owned(),
+            confidence: 0.9821,
             meta: HoloHoinMeta {
-                char_name: "Amane Kanata".to_owned(),
-                generation: 4,
-                group: Some("holoForce".to_owned()),
-                affiliation: Some("JP".to_owned()),
+                char_name: "Gawr Gura".to_owned(),
+                generation: Some(1),
+                group: Some("Myth".to_owned()),
+                affiliation: Some(Affiliation::EN),
             },
         };
         let json = serde_json::to_value(&result).unwrap();
-        assert_eq!(json["file_name"], "test.png");
-        assert_eq!(json["meta"]["char_name"], "Amane Kanata");
-        assert_eq!(json["meta"]["group"], "holoForce");
-        assert_eq!(json["meta"]["affiliation"], "JP");
+        assert_eq!(json["file_name"], "gura.jpg");
+        assert_eq!(json["meta"]["char_name"], "Gawr Gura");
+        assert_eq!(json["meta"]["generation"], 1);
+        assert_eq!(json["meta"]["group"], "Myth");
+        assert_eq!(json["meta"]["affiliation"], "EN");
     }
-}
 
-#[test]
-fn from_api_response_into_works() {
-    let api = HoloHoinApiResponse {
-        file_name: "test.png".to_owned(),
-        confidence: 0.92,
-        char_name: "Kanata".to_owned(),
-        generation: 4,
-        affiliation: 0,
-    };
-
-    let result: HoloHoinResult = api.into();
-
-    assert_eq!(result.file_name, "test.png");
-    assert_eq!(result.meta.char_name, "Kanata");
-    assert_eq!(result.meta.generation, 4);
-    assert_eq!(result.meta.group.as_deref(), Some("holoForce"));
-    assert_eq!(result.meta.affiliation.as_deref(), Some("JP"));
+    #[test]
+    fn into_trait_works() {
+        let api = make_response("Tokoyami Towa", Some(4), Some("holoForce"), Some(Affiliation::JP));
+        let result: HoloHoinResult = api.into();
+        assert_eq!(result.meta.char_name, "Tokoyami Towa");
+        assert_eq!(result.meta.group.as_deref(), Some("holoForce"));
+    }
 }
