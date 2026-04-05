@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HoloScope — Character Classifier</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:        #07080f;
+      --surface:   #0e1020;
+      --border:    #1e2240;
+      --accent:    #7fffb2;
+      --accent2:   #ff6eb4;
+      --accent3:   #6eb4ff;
+      --text:      #e8eaf6;
+      --muted:     #5c6080;
+      --card-glow: 0 0 40px rgba(127,255,178,0.07);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── 배경 그리드 ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(126,255,178,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(126,255,178,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── 헤더 ── */
+    header {
+      position: relative;
+      z-index: 10;
+      padding: 48px 0 32px;
+      text-align: center;
+    }
+
+    .logo-mark {
+      display: inline-block;
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.4em;
+      color: var(--accent);
+      text-transform: uppercase;
+      border: 1px solid var(--accent);
+      padding: 4px 12px;
+      margin-bottom: 20px;
+      opacity: 0.8;
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      background: linear-gradient(135deg, #fff 0%, var(--accent) 60%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      margin-top: 12px;
+      font-size: 14px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── 메인 레이아웃 ── */
+    main {
+      position: relative;
+      z-index: 10;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 680px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    /* ── 카드 ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: var(--card-glow);
+      transition: border-color 0.2s;
+    }
+    .card:hover { border-color: rgba(127,255,178,0.2); }
+
+    .card-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.35em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    /* ── 업로드 존 ── */
+    #drop-zone {
+      grid-column: 1 / -1;
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    #drop-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(127,255,178,0.04);
+    }
+    #drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .upload-icon {
+      width: 48px;
+      height: 48px;
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: var(--muted);
+      transition: border-color 0.2s, color 0.2s;
+    }
+    #drop-zone:hover .upload-icon,
+    #drop-zone.dragover .upload-icon {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .upload-text {
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .upload-text strong { color: var(--text); }
+
+    /* 이미지 프리뷰 */
+    #preview-wrap {
+      grid-column: 1 / -1;
+      display: none;
+      gap: 24px;
+      align-items: flex-start;
+    }
+    #preview-wrap.visible { display: flex; flex-wrap: wrap; }
+
+    #preview-img {
+      width: 200px;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    /* ── 결과 카드 ── */
+    #result-card {
+      display: none;
+      flex: 1;
+      min-width: 240px;
+    }
+    #result-card.visible { display: block; }
+
+    .char-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 4px;
+      word-break: break-word;
+    }
+
+    .holo-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 100px;
+      margin-bottom: 20px;
+    }
+    .holo-badge.yes { background: rgba(127,255,178,0.12); color: var(--accent); border: 1px solid rgba(127,255,178,0.3); }
+    .holo-badge.no  { background: rgba(255,110,180,0.12); color: var(--accent2); border: 1px solid rgba(255,110,180,0.3); }
+
+    /* 신뢰도 바 */
+    .conf-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+    .conf-name {
+      width: 130px;
+      flex-shrink: 0;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .conf-bar-wrap {
+      flex: 1;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .conf-bar {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      background: linear-gradient(90deg, var(--accent3), var(--accent));
+    }
+    .conf-bar.top { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+    .conf-pct {
+      width: 42px;
+      text-align: right;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* ── 분석 버튼 ── */
+    #analyze-btn {
+      grid-column: 1 / -1;
+      display: none;
+      width: 100%;
+      padding: 16px;
+      background: transparent;
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      color: var(--accent);
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      text-transform: uppercase;
+    }
+    #analyze-btn:hover {
+      background: var(--accent);
+      color: var(--bg);
+    }
+    #analyze-btn.visible { display: block; }
+    #analyze-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ── 로딩 ── */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── 에러 ── */
+    .error-msg {
+      grid-column: 1 / -1;
+      padding: 14px 20px;
+      background: rgba(255,110,180,0.08);
+      border: 1px solid rgba(255,110,180,0.25);
+      border-radius: 10px;
+      color: var(--accent2);
+      font-size: 14px;
+      display: none;
+    }
+    .error-msg.visible { display: block; }
+
+    /* ── 푸터 ── */
+    footer {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding-bottom: 40px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">HoloScope v1.0</div>
+  <h1>Character Classifier</h1>
+  <p class="subtitle">Swin Transformer · Hololive Production · Powered by AI</p>
+</header>
+
+<main>
+
+  <!-- 업로드 -->
+  <div id="drop-zone">
+    <input type="file" id="file-input" accept="image/*" />
+    <div class="upload-icon">↑</div>
+    <div class="upload-text"><strong>이미지를 드래그하거나 클릭</strong>하여 업로드</div>
+    <div class="upload-text" style="font-size:12px">JPG · PNG · WEBP</div>
+  </div>
+
+  <!-- 프리뷰 + 결과 -->
+  <div id="preview-wrap">
+    <img id="preview-img" src="" alt="preview" />
+    <div id="result-card" class="card">
+      <div class="card-label">Prediction Result</div>
+      <div id="char-name" class="char-name">—</div>
+      <div id="holo-badge" class="holo-badge">—</div>
+      <div id="top5-bars"></div>
+    </div>
+  </div>
+
+  <!-- 분석 버튼 -->
+  <button id="analyze-btn" onclick="analyze()">Identify Character</button>
+
+  <!-- 에러 -->
+  <div id="error-msg" class="error-msg"></div>
+
+</main>
+
+<footer>
+  <p>Hololive characters © Cover Corp. · 학술/비상업 목적 데모</p>
+</footer>
+
+<script>
+  const API = '';  // 같은 서버 → 상대 경로
+  let selectedFile = null;
+
+  const dropZone   = document.getElementById('drop-zone');
+  const fileInput  = document.getElementById('file-input');
+  const previewWrap = document.getElementById('preview-wrap');
+  const previewImg = document.getElementById('preview-img');
+  const resultCard = document.getElementById('result-card');
+  const analyzeBtn = document.getElementById('analyze-btn');
+  const errorMsg   = document.getElementById('error-msg');
+
+  // 드래그앤드롭
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+
+  fileInput.addEventListener('change', e => {
+    if (e.target.files[0]) handleFile(e.target.files[0]);
+  });
+
+  function handleFile(file) {
+    if (!file.type.startsWith('image/')) {
+      showError('이미지 파일만 업로드 가능합니다');
+      return;
+    }
+    selectedFile = file;
+    const url = URL.createObjectURL(file);
+    previewImg.src = url;
+    previewWrap.classList.add('visible');
+    resultCard.classList.remove('visible');
+    analyzeBtn.classList.add('visible');
+    analyzeBtn.textContent = 'Identify Character';
+    analyzeBtn.disabled = false;
+    hideError();
+  }
+
+  async function analyze() {
+    if (!selectedFile) return;
+    analyzeBtn.disabled = true;
+    analyzeBtn.innerHTML = '<span class="spinner"></span>Analyzing...';
+    hideError();
+    resultCard.classList.remove('visible');
+
+    const form = new FormData();
+    form.append('file', selectedFile);
+
+    try {
+      const res = await fetch(`${API}/predict`, { method: 'POST', body: form });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'API 오류');
+      }
+      const data = await res.json();
+      renderResult(data);
+    } catch (e) {
+      showError(e.message || '서버 오류가 발생했습니다');
+    } finally {
+      analyzeBtn.disabled = false;
+      analyzeBtn.textContent = 'Re-analyze';
+    }
+  }
+
+  function renderResult(data) {
+    document.getElementById('char-name').textContent = data.display_name;
+
+    const badge = document.getElementById('holo-badge');
+    if (data.is_hololive) {
+      badge.textContent = '✓ Hololive Member';
+      badge.className = 'holo-badge yes';
+    } else {
+      badge.textContent = '✗ Not Hololive';
+      badge.className = 'holo-badge no';
+    }
+
+    // Top-5 바
+    const container = document.getElementById('top5-bars');
+    container.innerHTML = '';
+    data.top5.forEach((item, i) => {
+      const pct = (item.confidence * 100).toFixed(1);
+      container.innerHTML += `
+        <div class="conf-row">
+          <div class="conf-name" title="${item.display_name}">${item.display_name}</div>
+          <div class="conf-bar-wrap">
+            <div class="conf-bar ${i === 0 ? 'top' : ''}" style="width:0%"
+                 data-target="${pct}%"></div>
+          </div>
+          <div class="conf-pct">${pct}%</div>
+        </div>`;
+    });
+
+    resultCard.classList.add('visible');
+
+    // 바 애니메이션
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.conf-bar').forEach(bar => {
+        bar.style.width = bar.dataset.target;
+      });
+    });
+  }
+
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.classList.add('visible');
+  }
+  function hideError() {
+    errorMsg.classList.remove('visible');
+  }
+</script>
+</body>
+</html>

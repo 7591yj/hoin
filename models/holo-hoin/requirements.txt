@@ -1,0 +1,21 @@
+# 크롤러
+requests>=2.31.0
+tqdm>=4.66.0
+Pillow>=10.0.0
+rich>=13.7.0
+python-dotenv>=1.0.0
+
+# 학습
+torch>=2.1.0
+torchvision>=0.16.0
+timm>=0.9.12
+albumentations>=1.3.1
+numpy>=1.24.0
+
+# API
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.9
+
+# 선택 (로깅)
+# wandb>=0.16.0
