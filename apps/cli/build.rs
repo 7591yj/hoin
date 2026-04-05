@@ -49,7 +49,10 @@ fn build_embedded_model_source(
     let onnx_relative = relative_from_workspace(workspace_dir, &onnx_path);
     let onnx_absolute = onnx_path.display().to_string();
 
-    let onnx_data = optional_file_expr(workspace_dir, &model_dir.join(format!("{model_name}.onnx.data")));
+    let onnx_data = optional_file_expr(
+        workspace_dir,
+        &model_dir.join(format!("{model_name}.onnx.data")),
+    );
     let class_map = optional_file_expr(workspace_dir, &model_dir.join("class_map.json"));
     let config = optional_file_expr(workspace_dir, &model_dir.join("config.json"));
 
