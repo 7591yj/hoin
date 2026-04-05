@@ -13,6 +13,12 @@ OUT="${SCRIPT_DIR}/holo-hoin.onnx"
 
 cd "${SCRIPT_DIR}"
 
+# Skip export if artifact already exists and uv is unavailable (e.g. CI)
+if [[ -f "${OUT}" ]] && ! command -v uv &>/dev/null; then
+  echo "uv not found and artifact already exists — skipping export"
+  exit 0
+fi
+
 uv run python export_onnx.py \
   --checkpoint-dir "${CHECKPOINT_DIR}" \
   --opset 18
