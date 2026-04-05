@@ -111,7 +111,12 @@ mod tests {
     #[test]
     fn from_api_jp_numbered_generation() {
         // JP 4기 holoForce member
-        let api = make_response("Amane Kanata", Some(4), Some("holoForce"), Some(Affiliation::JP));
+        let api = make_response(
+            "Amane Kanata",
+            Some(4),
+            Some("holoForce"),
+            Some(Affiliation::JP),
+        );
         let result = HoloHoinResult::from(api);
         assert_eq!(result.meta.char_name, "Amane Kanata");
         assert_eq!(result.meta.generation, Some(4));
@@ -180,7 +185,12 @@ mod tests {
 
     #[test]
     fn into_trait_works() {
-        let api = make_response("Tokoyami Towa", Some(4), Some("holoForce"), Some(Affiliation::JP));
+        let api = make_response(
+            "Tokoyami Towa",
+            Some(4),
+            Some("holoForce"),
+            Some(Affiliation::JP),
+        );
         let result: HoloHoinResult = api.into();
         assert_eq!(result.meta.char_name, "Tokoyami Towa");
         assert_eq!(result.meta.group.as_deref(), Some("holoForce"));
