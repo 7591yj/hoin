@@ -1,0 +1,380 @@
+{
+  "tokino_sora": {
+    "char_name": "ときのそら",
+    "generation": 0,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "airani_iofifteen": {
+    "char_name": "アイラニ・イオフィフティーン",
+    "generation": 1,
+    "group": null,
+    "affiliation": "IND"
+  },
+  "akai_haato": {
+    "char_name": "赤井はあと",
+    "generation": 1,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "aki_rosenthal": {
+    "char_name": "アキ・ローゼンタール",
+    "generation": 1,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "amane_kanata": {
+    "char_name": "天音かなた",
+    "generation": 4,
+    "group": "holoForce",
+    "affiliation": "JP"
+  },
+  "ayunda_risu": {
+    "char_name": "アユンダ・リス",
+    "generation": 1,
+    "group": null,
+    "affiliation": "IND"
+  },
+  "azki": {
+    "char_name": "AZKi",
+    "generation": 0,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "cecilia_immergreen": {
+    "char_name": "セシリア・イマーグリーン",
+    "generation": 4,
+    "group": "Justice",
+    "affiliation": "EN"
+  },
+  "ceres_fauna": {
+    "char_name": "セレス・ファウナ",
+    "generation": 2,
+    "group": "Council",
+    "affiliation": "EN"
+  },
+  "elizabeth_rose_bloodflame": {
+    "char_name": "エリザベス・ローズ・ブラッドフレイム",
+    "generation": 4,
+    "group": "Justice",
+    "affiliation": "EN"
+  },
+  "fuwamoco": {
+    "char_name": "フワモコ",
+    "generation": 3,
+    "group": "Advent",
+    "affiliation": "EN"
+  },
+  "gawr_gura": {
+    "char_name": "がうる・ぐら",
+    "generation": 1,
+    "group": "Myth",
+    "affiliation": "EN"
+  },
+  "gigi_murin": {
+    "char_name": "ジジ・ムリン",
+    "generation": 4,
+    "group": "Justice",
+    "affiliation": "EN"
+  },
+  "hakos_baelz": {
+    "char_name": "ハコス・ベールズ",
+    "generation": 2,
+    "group": "Council",
+    "affiliation": "EN"
+  },
+  "hakui_koyori": {
+    "char_name": "博衣こより",
+    "generation": 6,
+    "group": "holoX",
+    "affiliation": "JP"
+  },
+  "himemori_luna": {
+    "char_name": "姫森ルーナ",
+    "generation": 4,
+    "group": "holoForce",
+    "affiliation": "JP"
+  },
+  "hiodoshi_ao": {
+    "char_name": "火威青",
+    "generation": null,
+    "group": "ReGLOSS",
+    "affiliation": "JP"
+  },
+  "hoshimachi_suisei": {
+    "char_name": "星街すいせい",
+    "generation": 0,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "houshou_marine": {
+    "char_name": "宝鐘マリン",
+    "generation": 3,
+    "group": "Fantasy",
+    "affiliation": "JP"
+  },
+  "ichijou_ririka": {
+    "char_name": "一条莉々華",
+    "generation": null,
+    "group": "ReGLOSS",
+    "affiliation": "JP"
+  },
+  "juufuutei_raden": {
+    "char_name": "儒烏風亭らでん",
+    "generation": null,
+    "group": "ReGLOSS",
+    "affiliation": "JP"
+  },
+  "kaela_kovalskia": {
+    "char_name": "カエラ・コヴァルスキア",
+    "generation": 3,
+    "group": null,
+    "affiliation": "IND"
+  },
+  "kazama_iroha": {
+    "char_name": "風真いろは",
+    "generation": 6,
+    "group": "holoX",
+    "affiliation": "JP"
+  },
+  "kobo_kanaeru": {
+    "char_name": "こぼ・かなえる",
+    "generation": 3,
+    "group": null,
+    "affiliation": "IND"
+  },
+  "koseki_bijou": {
+    "char_name": "古石ビジュー",
+    "generation": 3,
+    "group": "Advent",
+    "affiliation": "EN"
+  },
+  "kureiji_ollie": {
+    "char_name": "クレイジー・オリー",
+    "generation": 2,
+    "group": null,
+    "affiliation": "IND"
+  },
+  "laplus_darknesss": {
+    "char_name": "ラプラス・ダークネス",
+    "generation": 6,
+    "group": "holoX",
+    "affiliation": "JP"
+  },
+  "minato_aqua": {
+    "char_name": "湊あくあ",
+    "generation": 2,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "momosuzu_nene": {
+    "char_name": "桃鈴ねね",
+    "generation": 5,
+    "group": "NePoLaBo",
+    "affiliation": "JP"
+  },
+  "moona_hoshinova": {
+    "char_name": "ムーナ・ホシノヴァ",
+    "generation": 1,
+    "group": null,
+    "affiliation": "IND"
+  },
+  "mori_calliope": {
+    "char_name": "森カリオペ",
+    "generation": 1,
+    "group": "Myth",
+    "affiliation": "EN"
+  },
+  "murasaki_shion": {
+    "char_name": "紫咲シオン",
+    "generation": 2,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "nakiri_ayame": {
+    "char_name": "百鬼あやめ",
+    "generation": 2,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "nanashi_mumei": {
+    "char_name": "七詩ムメイ",
+    "generation": 2,
+    "group": "Council",
+    "affiliation": "EN"
+  },
+  "natsuiro_matsuri": {
+    "char_name": "夏色まつり",
+    "generation": 1,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "nerissa_ravencroft": {
+    "char_name": "ネリッサ・レイヴンクロフト",
+    "generation": 3,
+    "group": "Advent",
+    "affiliation": "EN"
+  },
+  "ninomae_inanis": {
+    "char_name": "一伊那尓栖",
+    "generation": 1,
+    "group": "Myth",
+    "affiliation": "EN"
+  },
+  "omaru_polka": {
+    "char_name": "尾丸ポルカ",
+    "generation": 5,
+    "group": "NePoLaBo",
+    "affiliation": "JP"
+  },
+  "oozora_subaru": {
+    "char_name": "大空スバル",
+    "generation": 2,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "otonose_kanade": {
+    "char_name": "音乃瀬奏",
+    "generation": null,
+    "group": "ReGLOSS",
+    "affiliation": "JP"
+  },
+  "ouro_kronii": {
+    "char_name": "オーロ・クロニー",
+    "generation": 2,
+    "group": "Council",
+    "affiliation": "EN"
+  },
+  "others": {
+    "char_name": "Others",
+    "generation": null,
+    "group": null,
+    "affiliation": null
+  },
+  "pavolia_reine": {
+    "char_name": "パヴォリア・レイネ",
+    "generation": 2,
+    "group": null,
+    "affiliation": "IND"
+  },
+  "raora_panthera": {
+    "char_name": "ラオーラ・パンテーラ",
+    "generation": 4,
+    "group": "Justice",
+    "affiliation": "EN"
+  },
+  "roboco": {
+    "char_name": "ロボ子さん",
+    "generation": 0,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "sakamata_chloe": {
+    "char_name": "沙花叉クロヱ",
+    "generation": 6,
+    "group": "holoX",
+    "affiliation": "JP"
+  },
+  "sakura_miko": {
+    "char_name": "さくらみこ",
+    "generation": 0,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "shiori_novella": {
+    "char_name": "シオリ・ノヴェラ",
+    "generation": 3,
+    "group": "Advent",
+    "affiliation": "EN"
+  },
+  "shirakami_fubuki": {
+    "char_name": "白上フブキ",
+    "generation": 1,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "shiranui_flare": {
+    "char_name": "不知火フレア",
+    "generation": 3,
+    "group": "Fantasy",
+    "affiliation": "JP"
+  },
+  "shirogane_noel": {
+    "char_name": "白銀ノエル",
+    "generation": 3,
+    "group": "Fantasy",
+    "affiliation": "JP"
+  },
+  "shishiro_botan": {
+    "char_name": "獅白ぼたん",
+    "generation": 5,
+    "group": "NePoLaBo",
+    "affiliation": "JP"
+  },
+  "takanashi_kiara": {
+    "char_name": "小鳥遊キアラ",
+    "generation": 1,
+    "group": "Myth",
+    "affiliation": "EN"
+  },
+  "takane_lui": {
+    "char_name": "鷹嶺ルイ",
+    "generation": 6,
+    "group": "holoX",
+    "affiliation": "JP"
+  },
+  "todoroki_hajime": {
+    "char_name": "轟はじめ",
+    "generation": null,
+    "group": "ReGLOSS",
+    "affiliation": "JP"
+  },
+  "tokoyami_towa": {
+    "char_name": "常闇トワ",
+    "generation": 4,
+    "group": "holoForce",
+    "affiliation": "JP"
+  },
+  "tsunomaki_watame": {
+    "char_name": "角巻わため",
+    "generation": 4,
+    "group": "holoForce",
+    "affiliation": "JP"
+  },
+  "usada_pekora": {
+    "char_name": "兎田ぺこら",
+    "generation": 3,
+    "group": "Fantasy",
+    "affiliation": "JP"
+  },
+  "vestia_zeta": {
+    "char_name": "ベスティア・ゼータ",
+    "generation": 3,
+    "group": null,
+    "affiliation": "IND"
+  },
+  "watson_amelia": {
+    "char_name": "ワトソン・アメリア",
+    "generation": 1,
+    "group": "Myth",
+    "affiliation": "EN"
+  },
+  "yozora_mel": {
+    "char_name": "夜空メル",
+    "generation": 1,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "yukihana_lamy": {
+    "char_name": "雪花ラミィ",
+    "generation": 5,
+    "group": "NePoLaBo",
+    "affiliation": "JP"
+  },
+  "yuzuki_choco": {
+    "char_name": "癒月ちょこ",
+    "generation": 2,
+    "group": null,
+    "affiliation": "JP"
+  }
+}

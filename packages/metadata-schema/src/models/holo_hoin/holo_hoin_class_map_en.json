@@ -1,0 +1,380 @@
+{
+  "tokino_sora": {
+    "char_name": "Tokino Sora",
+    "generation": 0,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "airani_iofifteen": {
+    "char_name": "Airani Iofifteen",
+    "generation": 1,
+    "group": null,
+    "affiliation": "IND"
+  },
+  "akai_haato": {
+    "char_name": "Akai Haato",
+    "generation": 1,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "aki_rosenthal": {
+    "char_name": "Aki Rosenthal",
+    "generation": 1,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "amane_kanata": {
+    "char_name": "Amane Kanata",
+    "generation": 4,
+    "group": "holoForce",
+    "affiliation": "JP"
+  },
+  "ayunda_risu": {
+    "char_name": "Ayunda Risu",
+    "generation": 1,
+    "group": null,
+    "affiliation": "IND"
+  },
+  "azki": {
+    "char_name": "AZKi",
+    "generation": 0,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "cecilia_immergreen": {
+    "char_name": "Cecilia Immergreen",
+    "generation": 4,
+    "group": "Justice",
+    "affiliation": "EN"
+  },
+  "ceres_fauna": {
+    "char_name": "Ceres Fauna",
+    "generation": 2,
+    "group": "Council",
+    "affiliation": "EN"
+  },
+  "elizabeth_rose_bloodflame": {
+    "char_name": "Elizabeth Rose Bloodflame",
+    "generation": 4,
+    "group": "Justice",
+    "affiliation": "EN"
+  },
+  "fuwamoco": {
+    "char_name": "FUWAMOCO",
+    "generation": 3,
+    "group": "Advent",
+    "affiliation": "EN"
+  },
+  "gawr_gura": {
+    "char_name": "Gawr Gura",
+    "generation": 1,
+    "group": "Myth",
+    "affiliation": "EN"
+  },
+  "gigi_murin": {
+    "char_name": "Gigi Murin",
+    "generation": 4,
+    "group": "Justice",
+    "affiliation": "EN"
+  },
+  "hakos_baelz": {
+    "char_name": "Hakos Baelz",
+    "generation": 2,
+    "group": "Council",
+    "affiliation": "EN"
+  },
+  "hakui_koyori": {
+    "char_name": "Hakui Koyori",
+    "generation": 6,
+    "group": "holoX",
+    "affiliation": "JP"
+  },
+  "himemori_luna": {
+    "char_name": "Himemori Luna",
+    "generation": 4,
+    "group": "holoForce",
+    "affiliation": "JP"
+  },
+  "hiodoshi_ao": {
+    "char_name": "Hiodoshi Ao",
+    "generation": null,
+    "group": "ReGLOSS",
+    "affiliation": "JP"
+  },
+  "hoshimachi_suisei": {
+    "char_name": "Hoshimachi Suisei",
+    "generation": 0,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "houshou_marine": {
+    "char_name": "Houshou Marine",
+    "generation": 3,
+    "group": "Fantasy",
+    "affiliation": "JP"
+  },
+  "ichijou_ririka": {
+    "char_name": "Ichijou Ririka",
+    "generation": null,
+    "group": "ReGLOSS",
+    "affiliation": "JP"
+  },
+  "juufuutei_raden": {
+    "char_name": "Juufuutei Raden",
+    "generation": null,
+    "group": "ReGLOSS",
+    "affiliation": "JP"
+  },
+  "kaela_kovalskia": {
+    "char_name": "Kaela Kovalskia",
+    "generation": 3,
+    "group": null,
+    "affiliation": "IND"
+  },
+  "kazama_iroha": {
+    "char_name": "Kazama Iroha",
+    "generation": 6,
+    "group": "holoX",
+    "affiliation": "JP"
+  },
+  "kobo_kanaeru": {
+    "char_name": "Kobo Kanaeru",
+    "generation": 3,
+    "group": null,
+    "affiliation": "IND"
+  },
+  "koseki_bijou": {
+    "char_name": "Koseki Bijou",
+    "generation": 3,
+    "group": "Advent",
+    "affiliation": "EN"
+  },
+  "kureiji_ollie": {
+    "char_name": "Kureiji Ollie",
+    "generation": 2,
+    "group": null,
+    "affiliation": "IND"
+  },
+  "laplus_darknesss": {
+    "char_name": "La+ Darknesss",
+    "generation": 6,
+    "group": "holoX",
+    "affiliation": "JP"
+  },
+  "minato_aqua": {
+    "char_name": "Minato Aqua",
+    "generation": 2,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "momosuzu_nene": {
+    "char_name": "Momosuzu Nene",
+    "generation": 5,
+    "group": "NePoLaBo",
+    "affiliation": "JP"
+  },
+  "moona_hoshinova": {
+    "char_name": "Moona Hoshinova",
+    "generation": 1,
+    "group": null,
+    "affiliation": "IND"
+  },
+  "mori_calliope": {
+    "char_name": "Mori Calliope",
+    "generation": 1,
+    "group": "Myth",
+    "affiliation": "EN"
+  },
+  "murasaki_shion": {
+    "char_name": "Murasaki Shion",
+    "generation": 2,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "nakiri_ayame": {
+    "char_name": "Nakiri Ayame",
+    "generation": 2,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "nanashi_mumei": {
+    "char_name": "Nanashi Mumei",
+    "generation": 2,
+    "group": "Council",
+    "affiliation": "EN"
+  },
+  "natsuiro_matsuri": {
+    "char_name": "Natsuiro Matsuri",
+    "generation": 1,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "nerissa_ravencroft": {
+    "char_name": "Nerissa Ravencroft",
+    "generation": 3,
+    "group": "Advent",
+    "affiliation": "EN"
+  },
+  "ninomae_inanis": {
+    "char_name": "Ninomae Ina'nis",
+    "generation": 1,
+    "group": "Myth",
+    "affiliation": "EN"
+  },
+  "omaru_polka": {
+    "char_name": "Omaru Polka",
+    "generation": 5,
+    "group": "NePoLaBo",
+    "affiliation": "JP"
+  },
+  "oozora_subaru": {
+    "char_name": "Oozora Subaru",
+    "generation": 2,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "otonose_kanade": {
+    "char_name": "Otonose Kanade",
+    "generation": null,
+    "group": "ReGLOSS",
+    "affiliation": "JP"
+  },
+  "ouro_kronii": {
+    "char_name": "Ouro Kronii",
+    "generation": 2,
+    "group": "Council",
+    "affiliation": "EN"
+  },
+  "others": {
+    "char_name": "Others",
+    "generation": null,
+    "group": null,
+    "affiliation": null
+  },
+  "pavolia_reine": {
+    "char_name": "Pavolia Reine",
+    "generation": 2,
+    "group": null,
+    "affiliation": "IND"
+  },
+  "raora_panthera": {
+    "char_name": "Raora Panthera",
+    "generation": 4,
+    "group": "Justice",
+    "affiliation": "EN"
+  },
+  "roboco": {
+    "char_name": "Roboco-san",
+    "generation": 0,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "sakamata_chloe": {
+    "char_name": "Sakamata Chloe",
+    "generation": 6,
+    "group": "holoX",
+    "affiliation": "JP"
+  },
+  "sakura_miko": {
+    "char_name": "Sakura Miko",
+    "generation": 0,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "shiori_novella": {
+    "char_name": "Shiori Novella",
+    "generation": 3,
+    "group": "Advent",
+    "affiliation": "EN"
+  },
+  "shirakami_fubuki": {
+    "char_name": "Shirakami Fubuki",
+    "generation": 1,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "shiranui_flare": {
+    "char_name": "Shiranui Flare",
+    "generation": 3,
+    "group": "Fantasy",
+    "affiliation": "JP"
+  },
+  "shirogane_noel": {
+    "char_name": "Shirogane Noel",
+    "generation": 3,
+    "group": "Fantasy",
+    "affiliation": "JP"
+  },
+  "shishiro_botan": {
+    "char_name": "Shishiro Botan",
+    "generation": 5,
+    "group": "NePoLaBo",
+    "affiliation": "JP"
+  },
+  "takanashi_kiara": {
+    "char_name": "Takanashi Kiara",
+    "generation": 1,
+    "group": "Myth",
+    "affiliation": "EN"
+  },
+  "takane_lui": {
+    "char_name": "Takane Lui",
+    "generation": 6,
+    "group": "holoX",
+    "affiliation": "JP"
+  },
+  "todoroki_hajime": {
+    "char_name": "Todoroki Hajime",
+    "generation": null,
+    "group": "ReGLOSS",
+    "affiliation": "JP"
+  },
+  "tokoyami_towa": {
+    "char_name": "Tokoyami Towa",
+    "generation": 4,
+    "group": "holoForce",
+    "affiliation": "JP"
+  },
+  "tsunomaki_watame": {
+    "char_name": "Tsunomaki Watame",
+    "generation": 4,
+    "group": "holoForce",
+    "affiliation": "JP"
+  },
+  "usada_pekora": {
+    "char_name": "Usada Pekora",
+    "generation": 3,
+    "group": "Fantasy",
+    "affiliation": "JP"
+  },
+  "vestia_zeta": {
+    "char_name": "Vestia Zeta",
+    "generation": 3,
+    "group": null,
+    "affiliation": "IND"
+  },
+  "watson_amelia": {
+    "char_name": "Watson Amelia",
+    "generation": 1,
+    "group": "Myth",
+    "affiliation": "EN"
+  },
+  "yozora_mel": {
+    "char_name": "Yozora Mel",
+    "generation": 1,
+    "group": null,
+    "affiliation": "JP"
+  },
+  "yukihana_lamy": {
+    "char_name": "Yukihana Lamy",
+    "generation": 5,
+    "group": "NePoLaBo",
+    "affiliation": "JP"
+  },
+  "yuzuki_choco": {
+    "char_name": "Yuzuki Choco",
+    "generation": 2,
+    "group": null,
+    "affiliation": "JP"
+  }
+}

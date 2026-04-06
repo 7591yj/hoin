@@ -33,12 +33,23 @@ Each model lives under `models/<name>/` and _must_ provide:
 
 - `models/<name>/build.sh`: the model-owned export script
 - `models/<name>/<name>.onnx`: the required ONNX output produced by `build.sh`
+- `models/<name>/main.py`: a Python entrypoint with `predict_for_cli(path) -> dict`
 
 Optional sidecar files such as `models/<name>/<name>.onnx.data`, `class_map.json`,
 and `config.json` may also be produced and shipped with the release artifact.
 
 The repository does not prescribe how `build.sh` works internally. It may use Python,
 `uv`, PyTorch, or any other tooling, but the repo-level interface is the ONNX artifact.
+
+The CLI-facing prediction contract is model-agnostic and lives at the Python boundary.
+`predict_for_cli(path)` must return JSON-serializable data with:
+
+- `class_key`: model-defined predicted label key
+- `confidence`: model-defined confidence score
+
+File routing is owned by Rust, not by the model runtime. `packages/metadata-schema`
+registers per-model routing adapters that map classification results into destination
+paths.
 
 ## Releases
 
