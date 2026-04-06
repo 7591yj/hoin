@@ -27,6 +27,7 @@ from tqdm import tqdm
 # 디바이스
 # ──────────────────────────────────────────────
 
+
 def detect_device() -> torch.device:
     if torch.cuda.is_available():
         return torch.device("cuda")
@@ -41,29 +42,43 @@ def detect_device() -> torch.device:
 
 VALID_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 
+
 def get_train_transforms(img_size=224):
-    return A.Compose([
-        A.RandomResizedCrop(size=(img_size, img_size), scale=(0.7, 1.0)),
-        A.HorizontalFlip(p=0.5),
-        A.Rotate(limit=15, p=0.3),
-        A.OneOf([
-            A.GaussianBlur(blur_limit=3, p=1.0),
-            A.MedianBlur(blur_limit=3, p=1.0),
-        ], p=0.2),
-        A.HueSaturationValue(hue_shift_limit=5, sat_shift_limit=20, val_shift_limit=20, p=0.4),
-        A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.4),
-        A.CoarseDropout(num_holes_range=(1, 8), hole_height_range=(16, 32),
-                        hole_width_range=(16, 32), fill=0, p=0.3),
-        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ToTensorV2(),
-    ])
+    return A.Compose(
+        [
+            A.RandomResizedCrop(size=(img_size, img_size), scale=(0.7, 1.0)),
+            A.HorizontalFlip(p=0.5),
+            A.Rotate(limit=15, p=0.3),
+            A.OneOf(
+                [
+                    A.GaussianBlur(blur_limit=3, p=1.0),
+                    A.MedianBlur(blur_limit=3, p=1.0),
+                ],
+                p=0.2,
+            ),
+            A.HueSaturationValue(hue_shift_limit=5, sat_shift_limit=20, val_shift_limit=20, p=0.4),
+            A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.4),
+            A.CoarseDropout(
+                num_holes_range=(1, 8),
+                hole_height_range=(16, 32),
+                hole_width_range=(16, 32),
+                fill=0,
+                p=0.3,
+            ),
+            A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ToTensorV2(),
+        ]
+    )
+
 
 def get_val_transforms(img_size=224):
-    return A.Compose([
-        A.Resize(img_size, img_size),
-        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ToTensorV2(),
-    ])
+    return A.Compose(
+        [
+            A.Resize(img_size, img_size),
+            A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ToTensorV2(),
+        ]
+    )
 
 
 class PartialFinetuneDataset(Dataset):
@@ -71,17 +86,28 @@ class PartialFinetuneDataset(Dataset):
     data_dir 하위 폴더만 읽되, class_map.json의 인덱스를 그대로 사용.
     62클래스 모델의 출력 인덱스와 레이블이 일치하도록 보장.
     """
-    def __init__(self, data_dir: Path, class_map: dict, transform=None,
-                 split="train", val_ratio=0.1, test_ratio=0.1, seed=42):
+
+    def __init__(
+        self,
+        data_dir: Path,
+        class_map: dict,
+        transform=None,
+        split="train",
+        val_ratio=0.1,
+        test_ratio=0.1,
+        seed=42,
+    ):
         self.transform = transform
         # class_map: {idx_str: class_name} → 역방향 {class_name: idx}
         self.name_to_idx = {v: int(k) for k, v in class_map.items()}
 
-        available = sorted([
-            d.name for d in data_dir.iterdir()
-            if d.is_dir() and not d.name.startswith(".")
-            and d.name in self.name_to_idx
-        ])
+        available = sorted(
+            [
+                d.name
+                for d in data_dir.iterdir()
+                if d.is_dir() and not d.name.startswith(".") and d.name in self.name_to_idx
+            ]
+        )
 
         all_samples = []
         for cls in available:
@@ -92,16 +118,16 @@ class PartialFinetuneDataset(Dataset):
 
         rng = np.random.default_rng(seed)
         indices = rng.permutation(len(all_samples))
-        n_test  = int(len(all_samples) * test_ratio)
-        n_val   = int(len(all_samples) * val_ratio)
+        n_test = int(len(all_samples) * test_ratio)
+        n_val = int(len(all_samples) * val_ratio)
         n_train = len(all_samples) - n_test - n_val
 
         if split == "train":
             split_indices = indices[:n_train]
         elif split == "val":
-            split_indices = indices[n_train:n_train + n_val]
+            split_indices = indices[n_train : n_train + n_val]
         else:
-            split_indices = indices[n_train + n_val:]
+            split_indices = indices[n_train + n_val :]
 
         self.samples = [all_samples[i] for i in split_indices]
         self.active_classes = available
@@ -123,6 +149,7 @@ class PartialFinetuneDataset(Dataset):
 
     def get_sample_weights(self):
         from collections import Counter
+
         counts = Counter(label for _, label in self.samples)
         weights = [1.0 / counts[label] for _, label in self.samples]
         return torch.tensor(weights, dtype=torch.float)
@@ -131,6 +158,7 @@ class PartialFinetuneDataset(Dataset):
 # ──────────────────────────────────────────────
 # 학습 / 검증
 # ──────────────────────────────────────────────
+
 
 def train_epoch(model, loader, criterion, optimizer, device):
     model.train()
@@ -166,6 +194,7 @@ def val_epoch(model, loader, criterion, device):
 # 메인
 # ──────────────────────────────────────────────
 
+
 def main(args):
     device = detect_device()
     print(f"Device: {device}")
@@ -181,24 +210,37 @@ def main(args):
     print(f"기존 클래스 수: {num_classes}")
 
     # 데이터셋
-    train_ds = PartialFinetuneDataset(data_dir, class_map, get_train_transforms(args.img_size),
-                                      split="train")
-    val_ds   = PartialFinetuneDataset(data_dir, class_map, get_val_transforms(args.img_size),
-                                      split="val")
+    train_ds = PartialFinetuneDataset(
+        data_dir, class_map, get_train_transforms(args.img_size), split="train"
+    )
+    val_ds = PartialFinetuneDataset(
+        data_dir, class_map, get_val_transforms(args.img_size), split="val"
+    )
     print(f"fine-tune 대상 클래스: {train_ds.active_classes}")
 
     sample_weights = train_ds.get_sample_weights()
     sampler = WeightedRandomSampler(sample_weights, len(sample_weights))
 
     pin = device.type == "cuda"
-    train_loader = DataLoader(train_ds, batch_size=args.batch_size,
-                              sampler=sampler, num_workers=args.num_workers, pin_memory=pin)
-    val_loader   = DataLoader(val_ds, batch_size=args.batch_size,
-                              shuffle=False, num_workers=args.num_workers, pin_memory=pin)
+    train_loader = DataLoader(
+        train_ds,
+        batch_size=args.batch_size,
+        sampler=sampler,
+        num_workers=args.num_workers,
+        pin_memory=pin,
+    )
+    val_loader = DataLoader(
+        val_ds,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+        pin_memory=pin,
+    )
 
     # 모델 로드 (62클래스 구조 그대로)
-    model = timm.create_model("swin_tiny_patch4_window7_224",
-                               pretrained=False, num_classes=num_classes)
+    model = timm.create_model(
+        "swin_tiny_patch4_window7_224", pretrained=False, num_classes=num_classes
+    )
     best_pth = save_dir / "holo-hoin.pth"
     model.load_state_dict(torch.load(best_pth, weights_only=True, map_location=device))
     model = model.to(device)
@@ -219,18 +261,20 @@ def main(args):
     patience_counter = 0
     ft_best_pth = save_dir / "holo-hoin_ft.pth"
 
-    print(f"\n{'─'*45}")
+    print(f"\n{'─' * 45}")
     print(f"Fine-tune 시작: {args.epochs} epochs | lr={args.lr}")
-    print(f"{'─'*45}")
+    print(f"{'─' * 45}")
 
     for epoch in range(1, args.epochs + 1):
         train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device)
-        val_loss,   val_acc   = val_epoch(model, val_loader, criterion, device)
+        val_loss, val_acc = val_epoch(model, val_loader, criterion, device)
         scheduler.step()
 
-        print(f"  Epoch {epoch:2d}/{args.epochs} | "
-              f"train_loss: {train_loss:.4f}  train_acc: {train_acc:.4f} | "
-              f"val_loss: {val_loss:.4f}  val_acc: {val_acc:.4f}")
+        print(
+            f"  Epoch {epoch:2d}/{args.epochs} | "
+            f"train_loss: {train_loss:.4f}  train_acc: {train_acc:.4f} | "
+            f"val_loss: {val_loss:.4f}  val_acc: {val_acc:.4f}"
+        )
 
         if val_acc > best_val_acc:
             best_val_acc = val_acc
@@ -251,14 +295,14 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="기존 모델 위에 새 데이터로 추가학습")
-    parser.add_argument("--data-dir",    default="./dataset/raw")
-    parser.add_argument("--save-dir",    default="./checkpoints")
-    parser.add_argument("--img-size",    type=int,   default=224)
-    parser.add_argument("--batch-size",  type=int,   default=16,
-                        help="M4 MPS 권장: 16")
-    parser.add_argument("--num-workers", type=int,   default=4)
-    parser.add_argument("--epochs",      type=int,   default=15)
-    parser.add_argument("--lr",          type=float, default=2e-6,
-                        help="매우 낮은 lr 권장 (catastrophic forgetting 방지)")
-    parser.add_argument("--patience",    type=int,   default=5)
+    parser.add_argument("--data-dir", default="./dataset/raw")
+    parser.add_argument("--save-dir", default="./checkpoints")
+    parser.add_argument("--img-size", type=int, default=224)
+    parser.add_argument("--batch-size", type=int, default=16, help="M4 MPS 권장: 16")
+    parser.add_argument("--num-workers", type=int, default=4)
+    parser.add_argument("--epochs", type=int, default=15)
+    parser.add_argument(
+        "--lr", type=float, default=2e-6, help="매우 낮은 lr 권장 (catastrophic forgetting 방지)"
+    )
+    parser.add_argument("--patience", type=int, default=5)
     main(parser.parse_args())

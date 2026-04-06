@@ -21,53 +21,61 @@ import numpy as np
 # Augmentation 정의
 # ──────────────────────────────────────────────
 
+
 def get_train_transforms(img_size: int = 224):
     """
     학습용 증강
     - 색조 변환은 약하게 (캐릭터 구분에 색상이 핵심)
     - 기하학적 변환 위주
     """
-    return A.Compose([
-        A.RandomResizedCrop(size=(img_size, img_size), scale=(0.7, 1.0)),
-        A.HorizontalFlip(p=0.5),
-        A.Rotate(limit=15, p=0.3),
-        A.OneOf([
-            A.GaussianBlur(blur_limit=3, p=1.0),
-            A.MedianBlur(blur_limit=3, p=1.0),
-        ], p=0.2),
-        # 색조 변환: 아주 약하게
-        A.HueSaturationValue(
-            hue_shift_limit=5,       # 색조는 거의 안 건드림
-            sat_shift_limit=20,      # 채도는 약간
-            val_shift_limit=20,      # 밝기는 약간
-            p=0.4
-        ),
-        A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.4),
-        A.CoarseDropout(
-            num_holes_range=(1, 8),
-            hole_height_range=(16, 32),
-            hole_width_range=(16, 32),
-            fill=0, p=0.3
-        ),
-        A.Normalize(mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225]),
-        ToTensorV2(),
-    ])
+    return A.Compose(
+        [
+            A.RandomResizedCrop(size=(img_size, img_size), scale=(0.7, 1.0)),
+            A.HorizontalFlip(p=0.5),
+            A.Rotate(limit=15, p=0.3),
+            A.OneOf(
+                [
+                    A.GaussianBlur(blur_limit=3, p=1.0),
+                    A.MedianBlur(blur_limit=3, p=1.0),
+                ],
+                p=0.2,
+            ),
+            # 색조 변환: 아주 약하게
+            A.HueSaturationValue(
+                hue_shift_limit=5,  # 색조는 거의 안 건드림
+                sat_shift_limit=20,  # 채도는 약간
+                val_shift_limit=20,  # 밝기는 약간
+                p=0.4,
+            ),
+            A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.4),
+            A.CoarseDropout(
+                num_holes_range=(1, 8),
+                hole_height_range=(16, 32),
+                hole_width_range=(16, 32),
+                fill=0,
+                p=0.3,
+            ),
+            A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ToTensorV2(),
+        ]
+    )
 
 
 def get_val_transforms(img_size: int = 224):
     """검증/테스트용: 리사이즈 + 정규화만"""
-    return A.Compose([
-        A.Resize(img_size, img_size),
-        A.Normalize(mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225]),
-        ToTensorV2(),
-    ])
+    return A.Compose(
+        [
+            A.Resize(img_size, img_size),
+            A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ToTensorV2(),
+        ]
+    )
 
 
 # ──────────────────────────────────────────────
 # Dataset
 # ──────────────────────────────────────────────
+
 
 class HoloDataset(Dataset):
     """
@@ -78,19 +86,26 @@ class HoloDataset(Dataset):
             usada_pekora/
             others/
     """
+
     VALID_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 
-    def __init__(self, root_dir: str | Path, transform=None, split: str = "train",
-                 val_ratio: float = 0.1, test_ratio: float = 0.1, seed: int = 42):
+    def __init__(
+        self,
+        root_dir: str | Path,
+        transform=None,
+        split: str = "train",
+        val_ratio: float = 0.1,
+        test_ratio: float = 0.1,
+        seed: int = 42,
+    ):
         self.root_dir = Path(root_dir)
         self.transform = transform
         self.split = split
 
         # 클래스 목록 자동 생성 (폴더명 정렬)
-        classes = sorted([
-            d.name for d in self.root_dir.iterdir()
-            if d.is_dir() and not d.name.startswith(".")
-        ])
+        classes = sorted(
+            [d.name for d in self.root_dir.iterdir() if d.is_dir() and not d.name.startswith(".")]
+        )
         self.class_to_idx = {cls: i for i, cls in enumerate(classes)}
         self.idx_to_class = {i: cls for cls, i in self.class_to_idx.items()}
         self.classes = classes
@@ -114,9 +129,9 @@ class HoloDataset(Dataset):
         if split == "train":
             split_indices = indices[:n_train]
         elif split == "val":
-            split_indices = indices[n_train:n_train + n_val]
+            split_indices = indices[n_train : n_train + n_val]
         else:  # test
-            split_indices = indices[n_train + n_val:]
+            split_indices = indices[n_train + n_val :]
 
         self.samples = [all_samples[i] for i in split_indices]
 
@@ -157,6 +172,7 @@ class HoloDataset(Dataset):
 # DataLoader 팩토리
 # ──────────────────────────────────────────────
 
+
 def build_dataloaders(
     root_dir: str | Path,
     img_size: int = 224,
@@ -166,8 +182,8 @@ def build_dataloaders(
 ):
     """train/val/test DataLoader 한번에 생성"""
     train_ds = HoloDataset(root_dir, get_train_transforms(img_size), split="train")
-    val_ds   = HoloDataset(root_dir, get_val_transforms(img_size),   split="val")
-    test_ds  = HoloDataset(root_dir, get_val_transforms(img_size),   split="test")
+    val_ds = HoloDataset(root_dir, get_val_transforms(img_size), split="val")
+    test_ds = HoloDataset(root_dir, get_val_transforms(img_size), split="test")
 
     # 클래스 불균형 처리
     if use_weighted_sampler:
@@ -179,17 +195,26 @@ def build_dataloaders(
         shuffle = True
 
     train_loader = DataLoader(
-        train_ds, batch_size=batch_size,
-        sampler=sampler, shuffle=shuffle,
-        num_workers=num_workers, pin_memory=True,
+        train_ds,
+        batch_size=batch_size,
+        sampler=sampler,
+        shuffle=shuffle,
+        num_workers=num_workers,
+        pin_memory=True,
     )
     val_loader = DataLoader(
-        val_ds, batch_size=batch_size,
-        shuffle=False, num_workers=num_workers, pin_memory=True,
+        val_ds,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=True,
     )
     test_loader = DataLoader(
-        test_ds, batch_size=batch_size,
-        shuffle=False, num_workers=num_workers, pin_memory=True,
+        test_ds,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=True,
     )
 
     return train_loader, val_loader, test_loader, train_ds

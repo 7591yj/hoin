@@ -51,7 +51,9 @@ def load_model(weights_path: Path, num_classes: int, device: torch.device) -> nn
 
 
 @torch.no_grad()
-def evaluate(model: nn.Module, loader: DataLoader, device: torch.device, dtype: torch.dtype) -> tuple[float, float]:
+def evaluate(
+    model: nn.Module, loader: DataLoader, device: torch.device, dtype: torch.dtype
+) -> tuple[float, float]:
     correct = total = 0
     t0 = time.time()
     for imgs, labels in tqdm(loader, desc=f"  eval ({dtype})", leave=False):
@@ -99,7 +101,7 @@ def main():
     if can_benchmark:
         print("      FP32 평가 중...")
         acc_fp32, t_fp32 = evaluate(model_fp32, test_loader, device, torch.float32)
-        print(f"  FP32 test_acc: {acc_fp32*100:.2f}%  |  {t_fp32:.1f}s")
+        print(f"  FP32 test_acc: {acc_fp32 * 100:.2f}%  |  {t_fp32:.1f}s")
 
     # ── FP16 변환 + 저장 ─────────────────────────
     print("\n[2/3] FP16 변환 및 저장...")
@@ -108,7 +110,7 @@ def main():
 
     fp32_mb = os.path.getsize(FP32_PATH) / 1024**2
     fp16_mb = os.path.getsize(FP16_PATH) / 1024**2
-    print(f"  FP32: {fp32_mb:.1f} MB  →  FP16: {fp16_mb:.1f} MB  ({fp16_mb/fp32_mb*100:.0f}%)")
+    print(f"  FP32: {fp32_mb:.1f} MB  →  FP16: {fp16_mb:.1f} MB  ({fp16_mb / fp32_mb * 100:.0f}%)")
 
     # ── FP16 평가 ────────────────────────────────
     if can_benchmark:
@@ -117,15 +119,15 @@ def main():
         # MPS/CUDA 모두 half() 로 올려야 FP16 연산
         model_fp16 = model_fp16.half()
         acc_fp16, t_fp16 = evaluate(model_fp16, test_loader, device, torch.float16)
-        print(f"  FP16 test_acc: {acc_fp16*100:.2f}%  |  {t_fp16:.1f}s")
+        print(f"  FP16 test_acc: {acc_fp16 * 100:.2f}%  |  {t_fp16:.1f}s")
 
         delta_acc = (acc_fp16 - acc_fp32) * 100
-        delta_t   = t_fp16 - t_fp32
+        delta_t = t_fp16 - t_fp32
         print("\n" + "=" * 50)
         print(f"{'':6}{'FP32':>12}{'FP16':>12}{'차이':>10}")
         print("-" * 50)
         print(f"{'파일크기':6}{fp32_mb:>10.1f}MB{fp16_mb:>10.1f}MB{fp16_mb - fp32_mb:>+8.1f}MB")
-        print(f"{'Test Acc':6}{acc_fp32*100:>11.2f}%{acc_fp16*100:>11.2f}%{delta_acc:>+9.2f}pp")
+        print(f"{'Test Acc':6}{acc_fp32 * 100:>11.2f}%{acc_fp16 * 100:>11.2f}%{delta_acc:>+9.2f}pp")
         print(f"{'추론시간':6}{t_fp32:>10.1f}s{t_fp16:>10.1f}s{delta_t:>+8.1f}s")
         print("=" * 50)
     else:

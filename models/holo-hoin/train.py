@@ -24,12 +24,14 @@ from dataset import build_dataloaders
 
 try:
     import wandb
+
     WANDB_AVAILABLE = True
 except ImportError:
     WANDB_AVAILABLE = False
 
 try:
     import intel_extension_for_pytorch as ipex  # Intel Arc XPU 지원
+
     IPEX_AVAILABLE = True
 except ImportError:
     IPEX_AVAILABLE = False
@@ -39,7 +41,10 @@ except ImportError:
 # 디바이스 감지
 # ──────────────────────────────────────────────
 
-def detect_device(force_xpu: bool = False, force_cpu: bool = False, device_str: str = "") -> torch.device:
+
+def detect_device(
+    force_xpu: bool = False, force_cpu: bool = False, device_str: str = ""
+) -> torch.device:
     """디바이스 우선순위: --device 명시 > --xpu > --cpu > xpu > cuda > mps > cpu"""
     if force_cpu:
         return torch.device("cpu")
@@ -80,6 +85,7 @@ def make_scaler(device: torch.device, enabled: bool) -> torch.amp.GradScaler:
 # 모델
 # ──────────────────────────────────────────────
 
+
 def build_model(num_classes: int, pretrained: bool = True) -> nn.Module:
     model = timm.create_model(
         "swin_tiny_patch4_window7_224",
@@ -109,6 +115,7 @@ def unfreeze_all(model: nn.Module):
 # ──────────────────────────────────────────────
 # 학습 루프
 # ──────────────────────────────────────────────
+
 
 def train_epoch(model, loader, criterion, optimizer, device, scaler, use_amp):
     model.train()
@@ -178,8 +185,7 @@ def test_epoch(model, loader, criterion, device, use_amp, num_classes: int):
                 class_correct[label] += 1
 
     per_class_acc = {
-        i: class_correct[i] / class_total[i]
-        for i in range(num_classes) if class_total[i] > 0
+        i: class_correct[i] / class_total[i] for i in range(num_classes) if class_total[i] > 0
     }
     return total_loss / total, correct / total, per_class_acc
 
@@ -188,17 +194,23 @@ def test_epoch(model, loader, criterion, device, use_amp, num_classes: int):
 # 체크포인트
 # ──────────────────────────────────────────────
 
-def save_checkpoint(path, phase, epoch, model, optimizer, scheduler, scaler, best_val_acc, patience_counter):
-    torch.save({
-        "phase": phase,
-        "epoch": epoch,
-        "model_state": model.state_dict(),
-        "optimizer_state": optimizer.state_dict(),
-        "scheduler_state": scheduler.state_dict(),
-        "scaler_state": scaler.state_dict(),
-        "best_val_acc": best_val_acc,
-        "patience_counter": patience_counter,
-    }, path)
+
+def save_checkpoint(
+    path, phase, epoch, model, optimizer, scheduler, scaler, best_val_acc, patience_counter
+):
+    torch.save(
+        {
+            "phase": phase,
+            "epoch": epoch,
+            "model_state": model.state_dict(),
+            "optimizer_state": optimizer.state_dict(),
+            "scheduler_state": scheduler.state_dict(),
+            "scaler_state": scaler.state_dict(),
+            "best_val_acc": best_val_acc,
+            "patience_counter": patience_counter,
+        },
+        path,
+    )
 
 
 def load_checkpoint(path, device):
@@ -209,6 +221,7 @@ def load_checkpoint(path, device):
 # 메인 학습
 # ──────────────────────────────────────────────
 
+
 def train(args):
     device = detect_device(
         force_xpu=args.xpu,
@@ -217,9 +230,11 @@ def train(args):
     )
     # AMP: CUDA/XPU만 활성화. MPS/CPU는 AMP 미지원
     use_amp = device.type in ("cuda", "xpu") and not args.no_amp
-    print(f"Device: {device} | AMP: {use_amp}"
-          + (" | IPEX" if (IPEX_AVAILABLE and device.type == "xpu") else "")
-          + (" | Apple Silicon MPS" if device.type == "mps" else ""))
+    print(
+        f"Device: {device} | AMP: {use_amp}"
+        + (" | IPEX" if (IPEX_AVAILABLE and device.type == "xpu") else "")
+        + (" | Apple Silicon MPS" if device.type == "mps" else "")
+    )
 
     # WandB 초기화
     use_wandb = args.wandb and WANDB_AVAILABLE
@@ -280,8 +295,10 @@ def train(args):
         resume_epoch = ckpt["epoch"]
         best_val_acc = ckpt["best_val_acc"]
         model.load_state_dict(ckpt["model_state"])
-        print(f"체크포인트 로드: Phase {resume_phase}, "
-              f"Epoch {resume_epoch}, best_val_acc={best_val_acc:.4f}")
+        print(
+            f"체크포인트 로드: Phase {resume_phase}, "
+            f"Epoch {resume_epoch}, best_val_acc={best_val_acc:.4f}"
+        )
     elif not args.finetune:
         print("체크포인트 없음 — 처음부터 학습")
 
@@ -291,8 +308,7 @@ def train(args):
     if resume_phase == 1:
         freeze_backbone(model)
         optimizer = optim.AdamW(
-            filter(lambda p: p.requires_grad, model.parameters()),
-            lr=1e-3, weight_decay=1e-4
+            filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3, weight_decay=1e-4
         )
         scheduler = CosineAnnealingLR(optimizer, T_max=args.phase1_epochs)
         if _use_ipex:
@@ -308,26 +324,35 @@ def train(args):
 
         p1_start = resume_epoch + 1
         if p1_start <= args.phase1_epochs:
-            print(f"\n{'─'*40}")
+            print(f"\n{'─' * 40}")
             print(f"Phase 1 시작 (epoch {p1_start}~{args.phase1_epochs})")
-            print(f"{'─'*40}")
+            print(f"{'─' * 40}")
 
         for epoch in range(p1_start, args.phase1_epochs + 1):
-            train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device, scaler, use_amp)
+            train_loss, train_acc = train_epoch(
+                model, train_loader, criterion, optimizer, device, scaler, use_amp
+            )
             val_loss, val_acc = val_epoch(model, val_loader, criterion, device, use_amp)
             scheduler.step()
 
-            print(f"  Epoch {epoch:2d}/{args.phase1_epochs} | "
-                  f"train_loss: {train_loss:.4f}  train_acc: {train_acc:.4f} | "
-                  f"val_loss: {val_loss:.4f}  val_acc: {val_acc:.4f}")
+            print(
+                f"  Epoch {epoch:2d}/{args.phase1_epochs} | "
+                f"train_loss: {train_loss:.4f}  train_acc: {train_acc:.4f} | "
+                f"val_loss: {val_loss:.4f}  val_acc: {val_acc:.4f}"
+            )
 
             if use_wandb:
-                wandb.log({
-                    "phase": 1, "epoch": epoch,
-                    "train/loss": train_loss, "train/acc": train_acc,
-                    "val/loss": val_loss, "val/acc": val_acc,
-                    "lr": scheduler.get_last_lr()[0],
-                })
+                wandb.log(
+                    {
+                        "phase": 1,
+                        "epoch": epoch,
+                        "train/loss": train_loss,
+                        "train/acc": train_acc,
+                        "val/loss": val_loss,
+                        "val/acc": val_acc,
+                        "lr": scheduler.get_last_lr()[0],
+                    }
+                )
 
             if val_acc > best_val_acc:
                 best_val_acc = val_acc
@@ -337,18 +362,24 @@ def train(args):
             else:
                 patience_counter += 1
 
-            save_checkpoint(ckpt_path, 1, epoch, model, optimizer, scheduler,
-                            scaler, best_val_acc, patience_counter)
+            save_checkpoint(
+                ckpt_path,
+                1,
+                epoch,
+                model,
+                optimizer,
+                scheduler,
+                scaler,
+                best_val_acc,
+                patience_counter,
+            )
 
     # ────────────────────────────────
     # Phase 2: 전체 fine-tune
     # ────────────────────────────────
     unfreeze_all(model)
 
-    optimizer = optim.AdamW(
-        model.parameters(),
-        lr=args.phase2_lr, weight_decay=1e-4
-    )
+    optimizer = optim.AdamW(model.parameters(), lr=args.phase2_lr, weight_decay=1e-4)
     scheduler = CosineAnnealingLR(optimizer, T_max=args.phase2_epochs)
     if _use_ipex:
         dtype = torch.bfloat16 if use_amp else torch.float32
@@ -366,26 +397,35 @@ def train(args):
         patience_counter = 0  # Phase 2 새로 시작 시 리셋
 
     if p2_start <= args.phase2_epochs:
-        print(f"\n{'─'*40}")
+        print(f"\n{'─' * 40}")
         print(f"Phase 2 시작 (epoch {p2_start}~{args.phase2_epochs}, patience={args.patience})")
-        print(f"{'─'*40}")
+        print(f"{'─' * 40}")
 
     for epoch in range(p2_start, args.phase2_epochs + 1):
-        train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device, scaler, use_amp)
+        train_loss, train_acc = train_epoch(
+            model, train_loader, criterion, optimizer, device, scaler, use_amp
+        )
         val_loss, val_acc = val_epoch(model, val_loader, criterion, device, use_amp)
         scheduler.step()
 
-        print(f"  Epoch {epoch:2d}/{args.phase2_epochs} | "
-              f"train_loss: {train_loss:.4f}  train_acc: {train_acc:.4f} | "
-              f"val_loss: {val_loss:.4f}  val_acc: {val_acc:.4f}")
+        print(
+            f"  Epoch {epoch:2d}/{args.phase2_epochs} | "
+            f"train_loss: {train_loss:.4f}  train_acc: {train_acc:.4f} | "
+            f"val_loss: {val_loss:.4f}  val_acc: {val_acc:.4f}"
+        )
 
         if use_wandb:
-            wandb.log({
-                "phase": 2, "epoch": args.phase1_epochs + epoch,
-                "train/loss": train_loss, "train/acc": train_acc,
-                "val/loss": val_loss, "val/acc": val_acc,
-                "lr": scheduler.get_last_lr()[0],
-            })
+            wandb.log(
+                {
+                    "phase": 2,
+                    "epoch": args.phase1_epochs + epoch,
+                    "train/loss": train_loss,
+                    "train/acc": train_acc,
+                    "val/loss": val_loss,
+                    "val/acc": val_acc,
+                    "lr": scheduler.get_last_lr()[0],
+                }
+            )
 
         if val_acc > best_val_acc:
             best_val_acc = val_acc
@@ -398,27 +438,29 @@ def train(args):
                 print(f"  Early stopping (patience={args.patience})")
                 break
 
-        save_checkpoint(ckpt_path, 2, epoch, model, optimizer, scheduler,
-                        scaler, best_val_acc, patience_counter)
+        save_checkpoint(
+            ckpt_path, 2, epoch, model, optimizer, scheduler, scaler, best_val_acc, patience_counter
+        )
 
     # ────────────────────────────────
     # 최종 테스트
     # ────────────────────────────────
-    print(f"\n{'─'*40}")
+    print(f"\n{'─' * 40}")
     print("테스트 세트 평가")
     model.load_state_dict(torch.load(save_dir / "holo-hoin.pth", weights_only=True))
-    test_loss, test_acc, per_class_acc = test_epoch(model, test_loader, criterion, device, use_amp, num_classes)
+    test_loss, test_acc, per_class_acc = test_epoch(
+        model, test_loader, criterion, device, use_amp, num_classes
+    )
     print(f"  test_loss: {test_loss:.4f}  test_acc: {test_acc:.4f}")
 
     # 정확도 낮은 클래스 출력 (디버깅용)
     low_acc_classes = sorted(
-        [(train_ds.idx_to_class[i], acc) for i, acc in per_class_acc.items()],
-        key=lambda x: x[1]
+        [(train_ds.idx_to_class[i], acc) for i, acc in per_class_acc.items()], key=lambda x: x[1]
     )[:10]
     print("  [하위 10개 클래스]")
     for cls_name, acc in low_acc_classes:
         print(f"    {cls_name}: {acc:.4f}")
-    print(f"{'─'*40}\n")
+    print(f"{'─' * 40}\n")
 
     if use_wandb:
         wandb.log({"test/loss": test_loss, "test/acc": test_acc})
@@ -441,32 +483,33 @@ def train(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-dir",       default="./dataset/raw")
-    parser.add_argument("--save-dir",       default="./checkpoints")
-    parser.add_argument("--img-size",       type=int,   default=224)
-    parser.add_argument("--batch-size",     type=int,   default=32)
-    parser.add_argument("--num-workers",    type=int,   default=4)
-    parser.add_argument("--phase1-epochs",  type=int,   default=5)
-    parser.add_argument("--phase2-epochs",  type=int,   default=30)
-    parser.add_argument("--phase2-lr",      type=float, default=1e-5)
+    parser.add_argument("--data-dir", default="./dataset/raw")
+    parser.add_argument("--save-dir", default="./checkpoints")
+    parser.add_argument("--img-size", type=int, default=224)
+    parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--num-workers", type=int, default=4)
+    parser.add_argument("--phase1-epochs", type=int, default=5)
+    parser.add_argument("--phase2-epochs", type=int, default=30)
+    parser.add_argument("--phase2-lr", type=float, default=1e-5)
     # ── 디바이스 옵션 ──────────────────────────────────
-    parser.add_argument("--xpu",            action="store_true",
-                        help="Intel Arc GPU(XPU) 강제 사용 (IPEX 필요)")
-    parser.add_argument("--cpu",            action="store_true",
-                        help="CPU 강제 사용")
-    parser.add_argument("--device",         default="",
-                        help="디바이스 직접 지정 (예: xpu, xpu:0, cuda:1)")
-    parser.add_argument("--no-amp",         action="store_true",
-                        help="AMP(mixed precision) 비활성화")
+    parser.add_argument(
+        "--xpu", action="store_true", help="Intel Arc GPU(XPU) 강제 사용 (IPEX 필요)"
+    )
+    parser.add_argument("--cpu", action="store_true", help="CPU 강제 사용")
+    parser.add_argument("--device", default="", help="디바이스 직접 지정 (예: xpu, xpu:0, cuda:1)")
+    parser.add_argument("--no-amp", action="store_true", help="AMP(mixed precision) 비활성화")
     # ── 학습 옵션 ──────────────────────────────────────
-    parser.add_argument("--finetune",        action="store_true",
-                        help="holo-hoin.pth 로드 후 Phase 2 추가학습 (새 데이터 추가 시)")
-    parser.add_argument("--patience",       type=int,   default=7,
-                        help="Early stopping patience (0=비활성화)")
-    parser.add_argument("--wandb",          action="store_true",
-                        help="WandB 로깅 활성화")
-    parser.add_argument("--wandb-project",  default="holoscope")
-    parser.add_argument("--wandb-run",      default=None)
+    parser.add_argument(
+        "--finetune",
+        action="store_true",
+        help="holo-hoin.pth 로드 후 Phase 2 추가학습 (새 데이터 추가 시)",
+    )
+    parser.add_argument(
+        "--patience", type=int, default=7, help="Early stopping patience (0=비활성화)"
+    )
+    parser.add_argument("--wandb", action="store_true", help="WandB 로깅 활성화")
+    parser.add_argument("--wandb-project", default="holoscope")
+    parser.add_argument("--wandb-run", default=None)
     args = parser.parse_args()
 
     train(args)
