@@ -306,7 +306,7 @@ wheels = [
 ]
 
 [[package]]
-name = "holoscope"
+name = "holo-hoin"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
