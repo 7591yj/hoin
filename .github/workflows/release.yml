@@ -94,7 +94,8 @@ jobs:
           fi
 
           cp "target/${{ matrix.target.target }}/release/${{ matrix.target.binary }}" "${binary_path}"
-          cp README.md "${artifact_dir}/"
+          binary_file="$(basename "${binary_path}")"
+          ./scripts/write-release-readme.sh "${artifact_dir}" "${binary_file}" "${HOIN_EMBED_MODEL}"
 
       - name: Create tarball
         if: matrix.target.archive == 'tar.gz'

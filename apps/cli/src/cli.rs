@@ -7,6 +7,7 @@ pub(crate) const DEFAULT_MIN_CONFIDENCE: f32 = 0.3;
 #[derive(Debug, Parser)]
 #[command(name = "hoin")]
 #[command(about = "Cross-platform CLI for one-shot image character classification")]
+#[command(disable_help_subcommand = true)]
 pub(crate) struct Cli {
     #[command(subcommand)]
     pub(crate) command: Option<Command>,
@@ -15,6 +16,7 @@ pub(crate) struct Cli {
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
     Categorize(CategorizeArgs),
+    Help,
     ModelInfo,
     ExtractModel {
         #[arg(long)]
