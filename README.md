@@ -2,6 +2,19 @@
 
 Cross-platform CLI for one-shot image character classification
 
+## Quick Start
+
+Build the CLI in this repository or download a release binary, then run:
+
+```bash
+hoin help
+hoin model-info
+hoin categorize --dry-run <image-dir>
+```
+
+For model-specific usage, see the README in `models/<name>/`. Release artifacts ship
+with a separate README focused on binary usage.
+
 ## Models
 
 - [holo-hoin](models/holo-hoin/README.md): image classifier for identifying the
