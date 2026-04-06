@@ -1,12 +1,14 @@
-use std::{
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{cmp::Ordering, io::Cursor};
 
 use anyhow::{Context, Result, bail};
-use serde::Deserialize;
+use image::{DynamicImage, imageops::FilterType};
+use ort::{session::Session, value::TensorRef};
 
 use crate::embedded_model::EMBEDDED_MODEL;
+
+const IMAGE_SIZE: u32 = 224;
+const IMAGE_NET_MEAN: [f32; 3] = [0.485, 0.456, 0.406];
+const IMAGE_NET_STD: [f32; 3] = [0.229, 0.224, 0.225];
 
 #[derive(Debug, Clone)]
 pub(crate) struct Classification {
@@ -16,14 +18,8 @@ pub(crate) struct Classification {
 
 pub(crate) struct ModelRuntime {
     model_name: String,
-    python: PathBuf,
-    model_dir: PathBuf,
-}
-
-#[derive(Debug, Deserialize)]
-struct PythonPrediction {
-    class_key: String,
-    confidence: f32,
+    class_map: Vec<String>,
+    session: Session,
 }
 
 impl ModelRuntime {
@@ -32,19 +28,20 @@ impl ModelRuntime {
             bail!("no embedded model was compiled into this executable");
         };
 
-        let model_dir = model_dir_path(model.name)
-            .canonicalize()
-            .context("resolve embedded model directory")?;
-        let python = model_dir.join(".venv/bin/python");
-
-        if !python.is_file() {
-            bail!("expected model Python runtime at {}", python.display());
-        }
+        let class_map_file = model
+            .class_map
+            .as_ref()
+            .context("embedded model is missing class_map.json")?;
+        let class_map = parse_class_map(class_map_file.bytes)?;
+        let session = Session::builder()
+            .context("create ONNX runtime session builder")?
+            .commit_from_memory(model.onnx.bytes)
+            .context("load embedded ONNX model into ONNX runtime")?;
 
         Ok(Self {
             model_name: model.name.to_owned(),
-            python,
-            model_dir,
+            class_map,
+            session,
         })
     }
 
@@ -52,87 +49,146 @@ impl ModelRuntime {
         &self.model_name
     }
 
-    pub(crate) fn classify_path(&mut self, path: &Path) -> Result<Classification> {
-        let output = Command::new(&self.python)
-            .arg("-c")
-            .arg(PYTHON_CLASSIFIER)
-            .arg(path)
-            .current_dir(&self.model_dir)
-            .output()
-            .with_context(|| format!("run classifier for {}", path.display()))?;
+    pub(crate) fn classify_path(&mut self, path: &std::path::Path) -> Result<Classification> {
+        let image = image::load_from_memory(
+            &std::fs::read(path).with_context(|| format!("read image {}", path.display()))?,
+        )
+        .with_context(|| format!("decode image {}", path.display()))?;
+        let input = preprocess_image(&image);
 
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            bail!(
-                "classifier failed for {}: {}",
-                path.display(),
-                stderr.trim()
-            );
-        }
+        let outputs = self
+            .session
+            .run(ort::inputs![TensorRef::from_array_view(([1usize, 3, 224, 224], &*input))?])
+            .with_context(|| format!("run ONNX inference for {}", path.display()))?;
 
-        let stdout =
-            String::from_utf8(output.stdout).context("decode classifier stdout as UTF-8")?;
-        let payload = stdout
-            .lines()
-            .rev()
-            .find(|line| !line.trim().is_empty())
-            .context("classifier stdout did not contain a JSON payload")?;
-        let prediction: PythonPrediction =
-            serde_json::from_str(payload).context("parse classifier JSON output")?;
+        let logits = extract_logits(&outputs)?;
+        let probabilities = softmax(&logits);
+        let (top_index, confidence) = probabilities
+            .iter()
+            .copied()
+            .enumerate()
+            .max_by(|(_, left), (_, right)| {
+                left.partial_cmp(right).unwrap_or(Ordering::Equal)
+            })
+            .context("model produced no class probabilities")?;
+        let class_key = self
+            .class_map
+            .get(top_index)
+            .cloned()
+            .with_context(|| format!("predicted class index {top_index} missing from class map"))?;
 
         Ok(Classification {
-            class_key: prediction.class_key,
-            confidence: prediction.confidence,
+            class_key,
+            confidence,
         })
     }
 }
 
-fn model_dir_path(model_name: &str) -> PathBuf {
-    PathBuf::from("models").join(model_name)
+fn parse_class_map(bytes: &[u8]) -> Result<Vec<String>> {
+    let unordered: std::collections::HashMap<String, String> =
+        serde_json::from_reader(Cursor::new(bytes)).context("parse embedded class_map.json")?;
+    let mut indexed = Vec::with_capacity(unordered.len());
+
+    for (key, value) in unordered {
+        let index = key
+            .parse::<usize>()
+            .with_context(|| format!("class map key '{key}' is not a valid usize"))?;
+        indexed.push((index, value));
+    }
+
+    indexed.sort_by_key(|(index, _)| *index);
+
+    let mut class_map = Vec::with_capacity(indexed.len());
+
+    for (index, value) in indexed {
+
+        if index != class_map.len() {
+            bail!(
+                "class map must contain consecutive zero-based indexes, expected {}, got {}",
+                class_map.len(),
+                index
+            );
+        }
+
+        class_map.push(value);
+    }
+
+    Ok(class_map)
 }
 
-const PYTHON_CLASSIFIER: &str = r#"
-import json
-import sys
-import main
+fn preprocess_image(image: &DynamicImage) -> Vec<f32> {
+    let resized = image
+        .resize_exact(IMAGE_SIZE, IMAGE_SIZE, FilterType::Triangle)
+        .to_rgb8();
+    let mut input = vec![0.0_f32; (1 * 3 * IMAGE_SIZE * IMAGE_SIZE) as usize];
 
-path = sys.argv[1]
-prediction = main.predict_for_cli(path)
-print(json.dumps(prediction))
-"#;
+    for (x, y, pixel) in resized.enumerate_pixels() {
+        let [r, g, b] = pixel.0;
+        let offset = (y * IMAGE_SIZE + x) as usize;
+
+        input[offset] = normalize_channel(r, 0);
+        input[(IMAGE_SIZE * IMAGE_SIZE) as usize + offset] = normalize_channel(g, 1);
+        input[(2 * IMAGE_SIZE * IMAGE_SIZE) as usize + offset] = normalize_channel(b, 2);
+    }
+
+    input
+}
+
+fn normalize_channel(value: u8, channel: usize) -> f32 {
+    let scaled = f32::from(value) / 255.0;
+    (scaled - IMAGE_NET_MEAN[channel]) / IMAGE_NET_STD[channel]
+}
+
+fn extract_logits(outputs: &ort::session::SessionOutputs<'_>) -> Result<Vec<f32>> {
+    let (_, logits) = outputs[0]
+        .try_extract_tensor::<f32>()
+        .context("extract logits tensor from ONNX output")?;
+    Ok(logits.to_vec())
+}
+
+fn softmax(logits: &[f32]) -> Vec<f32> {
+    let max_logit = logits.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+    let mut exps = Vec::with_capacity(logits.len());
+    let mut sum = 0.0_f32;
+
+    for logit in logits {
+        let value = (logit - max_logit).exp();
+        exps.push(value);
+        sum += value;
+    }
+
+    if sum == 0.0 {
+        return vec![0.0; logits.len()];
+    }
+
+    exps.into_iter().map(|value| value / sum).collect()
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn classifier_script_uses_generic_model_hook() {
-        assert!(PYTHON_CLASSIFIER.contains("predict_for_cli"));
+    fn parses_consecutive_class_map() {
+        let class_map = parse_class_map(br#"{"0":"a","1":"b"}"#).unwrap();
+        assert_eq!(class_map, vec!["a".to_string(), "b".to_string()]);
     }
 
     #[test]
-    fn embedded_model_paths_are_model_agnostic() {
-        let model_dir = model_dir_path("some-other-model");
-        let python = model_dir.join(".venv/bin/python");
-
-        assert_eq!(model_dir, PathBuf::from("models/some-other-model"));
-        assert_eq!(
-            python,
-            PathBuf::from("models/some-other-model/.venv/bin/python")
-        );
+    fn rejects_non_consecutive_class_map() {
+        let error = parse_class_map(br#"{"1":"b"}"#).unwrap_err();
+        assert!(error
+            .to_string()
+            .contains("class map must contain consecutive zero-based indexes"));
     }
 
     #[test]
-    fn parses_generic_prediction_payload() {
-        let prediction: PythonPrediction = serde_json::from_str(
-            r#"{
-                "class_key": "example",
-                "confidence": 0.75
-            }"#,
-        )
-        .unwrap();
+    fn softmax_returns_probabilities() {
+        let probabilities = softmax(&[1.0, 2.0, 3.0]);
+        let total: f32 = probabilities.iter().sum();
 
-        assert_eq!(prediction.class_key, "example");
-        assert_eq!(prediction.confidence, 0.75);
+        assert!((total - 1.0).abs() < 1e-6);
+        assert!(probabilities[2] > probabilities[1]);
+        assert!(probabilities[1] > probabilities[0]);
     }
 }
