@@ -6,22 +6,21 @@
 - Apple Silicon MPS 자동 지원
 """
 
-import json
 import argparse
+import json
 from pathlib import Path
 
+import albumentations as A
 import numpy as np
+import timm
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.optim.lr_scheduler import CosineAnnealingLR
-from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
-from PIL import Image
-import albumentations as A
 from albumentations.pytorch import ToTensorV2
-import timm
+from PIL import Image
+from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 from tqdm import tqdm
-
 
 # ──────────────────────────────────────────────
 # 디바이스
@@ -289,7 +288,7 @@ def main(args):
 
     print(f"\nFine-tune 완료! 최고 val_acc: {best_val_acc:.4f}")
     print(f"저장 위치: {ft_best_pth}")
-    print(f"\n※ 전체 62클래스 추론에 사용하려면 holo-hoin.pth 를 교체하세요:")
+    print("\n※ 전체 62클래스 추론에 사용하려면 holo-hoin.pth 를 교체하세요:")
     print(f"  cp {ft_best_pth} {save_dir}/holo-hoin.pth")
 
 

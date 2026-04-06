@@ -8,16 +8,15 @@ Swin Transformer-Tiny 학습 스크립트
 - Intel Arc GPU (XPU) 지원 — IPEX 설치 시 자동 활성화
 """
 
-import os
-import json
 import argparse
+import json
 from pathlib import Path
 
+import timm
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
-import timm
 from tqdm import tqdm
 
 from dataset import build_dataloaders

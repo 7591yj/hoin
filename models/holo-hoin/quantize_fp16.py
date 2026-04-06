@@ -17,9 +17,9 @@ import os
 import time
 from pathlib import Path
 
+import timm
 import torch
 import torch.nn as nn
-import timm
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 

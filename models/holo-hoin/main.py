@@ -12,12 +12,11 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-import numpy as np
-from PIL import Image
 import albumentations as A
-
-from fastapi import FastAPI, File, UploadFile, HTTPException
+import numpy as np
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from PIL import Image
 from pydantic import BaseModel
 
 # ──────────────────────────────────────────────
@@ -527,8 +526,8 @@ class ModelLoader:
         print(f"ORT providers: {providers}")
 
     def _load_torch(self, num_classes: int):
-        import torch
         import timm
+        import torch
 
         self.torch_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = timm.create_model(
