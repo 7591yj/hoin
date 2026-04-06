@@ -4,7 +4,7 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
-use metadata_schema::routing::route_relative_destination;
+use metadata_schema::routing::{NameLocale, RoutingPreferences, route_relative_destination};
 use walkdir::WalkDir;
 
 use crate::{cli::CategorizeArgs, model::ModelRuntime};
@@ -34,6 +34,13 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
         .with_context(|| format!("resolve root path {}", args.path.display()))?;
     let mut runtime = ModelRuntime::load()?;
     let files = discover_files(&root)?;
+    let routing_preferences = RoutingPreferences {
+        name_locale: if args.ja {
+            NameLocale::Ja
+        } else {
+            NameLocale::En
+        },
+    };
 
     if files.is_empty() {
         println!("No files found under {}", root.display());
@@ -72,6 +79,7 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
                     runtime.model_name(),
                     &classification.class_key,
                     file_name,
+                    routing_preferences,
                 ) {
                     Ok(path) => path,
                     Err(error) => {

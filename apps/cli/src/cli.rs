@@ -28,6 +28,11 @@ pub(crate) struct CategorizeArgs {
     pub(crate) path: PathBuf,
     #[arg(long)]
     pub(crate) dry_run: bool,
+    #[arg(
+        long,
+        help = "Use Japanese character names when supported by the embedded model"
+    )]
+    pub(crate) ja: bool,
     #[arg(long, default_value_t = DEFAULT_MIN_CONFIDENCE)]
     pub(crate) min_confidence: f32,
 }

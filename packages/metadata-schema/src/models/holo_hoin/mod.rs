@@ -8,7 +8,14 @@
 // See: https://hololivepro.com/terms/
 
 use serde::{Deserialize, Serialize};
-use std::{ffi::OsStr, path::PathBuf};
+use std::{collections::HashMap, ffi::OsStr, path::PathBuf, sync::OnceLock};
+
+use crate::routing::NameLocale;
+
+const HOLO_HOIN_CLASS_MAP_JSON: &str = include_str!("holo_hoin_class_map_en.json");
+const HOLO_HOIN_CLASS_MAP_JA_JSON: &str = include_str!("holo_hoin_class_map_ja.json");
+static HOLO_HOIN_CLASS_MAP: OnceLock<HashMap<String, HoloHoinMeta>> = OnceLock::new();
+static HOLO_HOIN_CLASS_MAP_JA: OnceLock<HashMap<String, HoloHoinMeta>> = OnceLock::new();
 
 /// Raw response shape returned by the holo-hoin inference API
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -29,78 +36,26 @@ pub struct HoloHoinMeta {
 
 impl HoloHoinMeta {
     pub fn from_class_key(class_key: &str) -> Self {
-        match class_key {
-            "airani_iofifteen" => meta("Airani Iofifteen", Some(1), None, Some("IND")),
-            "akai_haato" => meta("Akai Haato", Some(1), None, Some("JP")),
-            "aki_rosenthal" => meta("Aki Rosenthal", Some(1), None, Some("JP")),
-            "amane_kanata" => meta("Amane Kanata", Some(4), Some("holoForce"), Some("JP")),
-            "ayunda_risu" => meta("Ayunda Risu", Some(1), None, Some("IND")),
-            "azki" => meta("AZKi", Some(0), None, Some("JP")),
-            "cecilia_immergreen" => {
-                meta("Cecilia Immergreen", Some(4), Some("Justice"), Some("EN"))
-            }
-            "ceres_fauna" => meta("Ceres Fauna", Some(2), Some("Council"), Some("EN")),
-            "elizabeth_rose_bloodflame" => meta(
-                "Elizabeth Rose Bloodflame",
-                Some(4),
-                Some("Justice"),
-                Some("EN"),
-            ),
-            "fuwamoco" => meta("FUWAMOCO", Some(3), Some("Advent"), Some("EN")),
-            "gawr_gura" => meta("Gawr Gura", Some(1), Some("Myth"), Some("EN")),
-            "gigi_murin" => meta("Gigi Murin", Some(4), Some("Justice"), Some("EN")),
-            "hakos_baelz" => meta("Hakos Baelz", Some(2), Some("Council"), Some("EN")),
-            "hakui_koyori" => meta("Hakui Koyori", Some(6), Some("holoX"), Some("JP")),
-            "himemori_luna" => meta("Himemori Luna", Some(4), Some("holoForce"), Some("JP")),
-            "hiodoshi_ao" => meta("Hiodoshi Ao", None, Some("ReGLOSS"), Some("JP")),
-            "hoshimachi_suisei" => meta("Hoshimachi Suisei", Some(0), None, Some("JP")),
-            "houshou_marine" => meta("Houshou Marine", Some(3), Some("Fantasy"), Some("JP")),
-            "ichijou_ririka" => meta("Ichijou Ririka", None, Some("ReGLOSS"), Some("JP")),
-            "juufuutei_raden" => meta("Juufuutei Raden", None, Some("ReGLOSS"), Some("JP")),
-            "kaela_kovalskia" => meta("Kaela Kovalskia", Some(3), None, Some("IND")),
-            "kazama_iroha" => meta("Kazama Iroha", Some(6), Some("holoX"), Some("JP")),
-            "kobo_kanaeru" => meta("Kobo Kanaeru", Some(3), None, Some("IND")),
-            "koseki_bijou" => meta("Koseki Bijou", Some(3), Some("Advent"), Some("EN")),
-            "kureiji_ollie" => meta("Kureiji Ollie", Some(2), None, Some("IND")),
-            "laplus_darknesss" => meta("La+ Darknesss", Some(6), Some("holoX"), Some("JP")),
-            "minato_aqua" => meta("Minato Aqua", Some(2), None, Some("JP")),
-            "momosuzu_nene" => meta("Momosuzu Nene", Some(5), Some("NePoLaBo"), Some("JP")),
-            "moona_hoshinova" => meta("Moona Hoshinova", Some(1), None, Some("IND")),
-            "mori_calliope" => meta("Mori Calliope", Some(1), Some("Myth"), Some("EN")),
-            "murasaki_shion" => meta("Murasaki Shion", Some(2), None, Some("JP")),
-            "nakiri_ayame" => meta("Nakiri Ayame", Some(2), None, Some("JP")),
-            "nanashi_mumei" => meta("Nanashi Mumei", Some(2), Some("Council"), Some("EN")),
-            "natsuiro_matsuri" => meta("Natsuiro Matsuri", Some(1), None, Some("JP")),
-            "nerissa_ravencroft" => meta("Nerissa Ravencroft", Some(3), Some("Advent"), Some("EN")),
-            "ninomae_inanis" => meta("Ninomae Ina'nis", Some(1), Some("Myth"), Some("EN")),
-            "omaru_polka" => meta("Omaru Polka", Some(5), Some("NePoLaBo"), Some("JP")),
-            "oozora_subaru" => meta("Oozora Subaru", Some(2), None, Some("JP")),
-            "otonose_kanade" => meta("Otonose Kanade", None, Some("ReGLOSS"), Some("JP")),
-            "ouro_kronii" => meta("Ouro Kronii", Some(2), Some("Council"), Some("EN")),
-            "others" => meta("Others", None, None, None),
-            "pavolia_reine" => meta("Pavolia Reine", Some(2), None, Some("IND")),
-            "raora_panthera" => meta("Raora Panthera", Some(4), Some("Justice"), Some("EN")),
-            "roboco" => meta("Roboco-san", Some(0), None, Some("JP")),
-            "sakamata_chloe" => meta("Sakamata Chloe", Some(6), Some("holoX"), Some("JP")),
-            "sakura_miko" => meta("Sakura Miko", Some(0), None, Some("JP")),
-            "shiori_novella" => meta("Shiori Novella", Some(3), Some("Advent"), Some("EN")),
-            "shirakami_fubuki" => meta("Shirakami Fubuki", Some(1), None, Some("JP")),
-            "shiranui_flare" => meta("Shiranui Flare", Some(3), Some("Fantasy"), Some("JP")),
-            "shirogane_noel" => meta("Shirogane Noel", Some(3), Some("Fantasy"), Some("JP")),
-            "shishiro_botan" => meta("Shishiro Botan", Some(5), Some("NePoLaBo"), Some("JP")),
-            "takanashi_kiara" => meta("Takanashi Kiara", Some(1), Some("Myth"), Some("EN")),
-            "takane_lui" => meta("Takane Lui", Some(6), Some("holoX"), Some("JP")),
-            "todoroki_hajime" => meta("Todoroki Hajime", None, Some("ReGLOSS"), Some("JP")),
-            "tokoyami_towa" => meta("Tokoyami Towa", Some(4), Some("holoForce"), Some("JP")),
-            "tsunomaki_watame" => meta("Tsunomaki Watame", Some(4), Some("holoForce"), Some("JP")),
-            "usada_pekora" => meta("Usada Pekora", Some(3), Some("Fantasy"), Some("JP")),
-            "vestia_zeta" => meta("Vestia Zeta", Some(3), None, Some("IND")),
-            "watson_amelia" => meta("Watson Amelia", Some(1), Some("Myth"), Some("EN")),
-            "yozora_mel" => meta("Yozora Mel", Some(1), None, Some("JP")),
-            "yukihana_lamy" => meta("Yukihana Lamy", Some(5), Some("NePoLaBo"), Some("JP")),
-            "yuzuki_choco" => meta("Yuzuki Choco", Some(2), None, Some("JP")),
-            unknown => meta(unknown, None, None, None),
-        }
+        Self::from_class_key_with_locale(class_key, NameLocale::En)
+    }
+
+    pub fn from_class_key_with_locale(class_key: &str, locale: NameLocale) -> Self {
+        let localized = match locale {
+            NameLocale::En => None,
+            NameLocale::Ja => holo_hoin_class_map_ja().get(class_key).cloned(),
+        };
+
+        localized
+            .or_else(|| holo_hoin_class_map().get(class_key).cloned())
+            .unwrap_or_else(|| meta(class_key, None, None, None))
+    }
+
+    pub fn relative_destination_for_class_key(
+        class_key: &str,
+        locale: NameLocale,
+        file_name: &OsStr,
+    ) -> PathBuf {
+        Self::from_class_key_with_locale(class_key, locale).relative_destination(file_name)
     }
 
     pub fn relative_destination(&self, file_name: &OsStr) -> PathBuf {
@@ -180,6 +135,20 @@ fn meta(
     }
 }
 
+fn holo_hoin_class_map() -> &'static HashMap<String, HoloHoinMeta> {
+    HOLO_HOIN_CLASS_MAP.get_or_init(|| {
+        serde_json::from_str(HOLO_HOIN_CLASS_MAP_JSON)
+            .expect("holo_hoin_class_map_en.json must contain a valid class-key map")
+    })
+}
+
+fn holo_hoin_class_map_ja() -> &'static HashMap<String, HoloHoinMeta> {
+    HOLO_HOIN_CLASS_MAP_JA.get_or_init(|| {
+        serde_json::from_str(HOLO_HOIN_CLASS_MAP_JA_JSON)
+            .expect("holo_hoin_class_map_ja.json must contain a valid class-key map")
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -246,6 +215,38 @@ mod tests {
         assert_eq!(meta.generation, Some(4));
         assert_eq!(meta.group.as_deref(), Some("holoForce"));
         assert_eq!(meta.affiliation.as_deref(), Some("JP"));
+    }
+
+    #[test]
+    fn bundled_class_map_json_contains_known_character() {
+        let class_map = holo_hoin_class_map();
+
+        assert!(class_map.contains_key("amane_kanata"));
+    }
+
+    #[test]
+    fn bundled_japanese_class_map_json_contains_known_character() {
+        let class_map = holo_hoin_class_map_ja();
+
+        assert!(class_map.contains_key("amane_kanata"));
+    }
+
+    #[test]
+    fn from_class_key_with_locale_prefers_japanese_name() {
+        let meta = HoloHoinMeta::from_class_key_with_locale("amane_kanata", NameLocale::Ja);
+
+        assert_eq!(meta.char_name, "天音かなた");
+        assert_eq!(meta.generation, Some(4));
+        assert_eq!(meta.group.as_deref(), Some("holoForce"));
+        assert_eq!(meta.affiliation.as_deref(), Some("JP"));
+    }
+
+    #[test]
+    fn from_class_key_with_locale_falls_back_for_unknown_class_key() {
+        let meta = HoloHoinMeta::from_class_key_with_locale("unknown_class_key", NameLocale::Ja);
+
+        assert_eq!(meta.char_name, "unknown_class_key");
+        assert_eq!(meta.affiliation, None);
     }
 
     #[test]

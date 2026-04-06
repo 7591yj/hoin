@@ -24,6 +24,7 @@ fn main() -> Result<()> {
         None => categorize(CategorizeArgs {
             path: PathBuf::from("."),
             dry_run: false,
+            ja: false,
             min_confidence: cli::DEFAULT_MIN_CONFIDENCE,
         }),
     }
