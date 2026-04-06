@@ -18,7 +18,6 @@ import albumentations as A
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 # ──────────────────────────────────────────────
@@ -32,7 +31,6 @@ ONNX_PATH       = CHECKPOINT_DIR / "holo-hoin.onnx"
 CLASS_MAP_PATH  = CHECKPOINT_DIR / "class_map.json"
 FALLBACK_ONNX_PATH = BASE_DIR / "holo-hoin.onnx"
 FALLBACK_CLASS_MAP_PATH = BASE_DIR / "class_map.json"
-DEMO_DIR        = BASE_DIR / "demo"
 IMG_SIZE        = 224
 TOP_K           = 5
 
@@ -320,9 +318,6 @@ async def predict(file: UploadFile = File(...)):
         confidence=confidence,
         meta=CharMeta(**meta_raw),
     )
-
-
-app.mount("/", StaticFiles(directory=str(DEMO_DIR), html=True), name="demo")
 
 
 if __name__ == "__main__":

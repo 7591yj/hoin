@@ -24,8 +24,6 @@ dependencies = [
     # 추론 엔진 (CPU EP 기본 포함)
     "onnxruntime>=1.17.0",
     "onnxscript>=0.6.2",
-    # 웹 UI
-    "gradio>=4.0",
 ]
 
 [project.optional-dependencies]
