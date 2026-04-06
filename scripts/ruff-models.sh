@@ -5,6 +5,13 @@ set -euo pipefail
 mode="${1:-check}"
 shift || true
 
+ruff_args=()
+
+if [ "${mode}" = "lint" ] && [ "${1:-}" = "--fix" ]; then
+  ruff_args+=(--fix)
+  shift
+fi
+
 requested_models=("$@")
 ran_any=false
 
@@ -38,7 +45,7 @@ run_ruff() {
       ruff format "${model_dir}"
       ;;
     lint)
-      ruff check "${model_dir}"
+      ruff check "${ruff_args[@]}" "${model_dir}"
       ;;
     check)
       ruff format --check "${model_dir}"

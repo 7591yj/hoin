@@ -7,9 +7,9 @@ fmt:
   cargo fmt --all
   ./scripts/ruff-models.sh format
 
-lint:
-  cargo clippy --workspace --all-targets -- -D warnings
-  ./scripts/ruff-models.sh lint
+lint fix="":
+  if [ "{{fix}}" = "--fix" ]; then cargo clippy --fix --allow-dirty --allow-staged --workspace --all-targets -- -D warnings; else cargo clippy --workspace --all-targets -- -D warnings; fi
+  if [ "{{fix}}" = "--fix" ]; then ./scripts/ruff-models.sh lint --fix; else ./scripts/ruff-models.sh lint; fi
 
 test:
   cargo test --workspace
