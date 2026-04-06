@@ -10,9 +10,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CHECKPOINT_DIR="${CHECKPOINT_DIR:-"${SCRIPT_DIR}/checkpoints"}"
 OUT="${SCRIPT_DIR}/holo-hoin.onnx"
+OUT_DATA="${SCRIPT_DIR}/holo-hoin.onnx.data"
 CHECKPOINT_PTH="${CHECKPOINT_DIR}/holo-hoin.pth"
 CHECKPOINT_CLASS_MAP="${CHECKPOINT_DIR}/class_map.json"
-MODEL_ONNX_DATA="${SCRIPT_DIR}/holo-hoin.onnx.data"
 
 cd "${SCRIPT_DIR}"
 
@@ -38,6 +38,9 @@ uv run python export_onnx.py \
   --checkpoint-dir "${CHECKPOINT_DIR}" \
   --output-dir "${SCRIPT_DIR}" \
   --opset 18
+
+# Ensure this model stays in single-file ONNX mode.
+rm -f "${OUT_DATA}"
 
 # copy sidecar artifacts if present
 for f in class_map.json config.json; do

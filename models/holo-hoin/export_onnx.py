@@ -22,14 +22,11 @@ def export(args):
     model_path = ckpt_dir / "holo-hoin.pth"
     class_map_path = ckpt_dir / "class_map.json"
     out_path = output_dir / "holo-hoin.onnx"
-    sidecar_path = output_dir / "holo-hoin.onnx.data"
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if out_path.exists():
         out_path.unlink()
-    if sidecar_path.exists():
-        sidecar_path.unlink()
 
     with open(class_map_path, encoding="utf-8") as f:
         num_classes = len(json.load(f))
@@ -55,6 +52,7 @@ def export(args):
         output_names=["logits"],
         dynamic_axes={"input": {0: "batch"}, "logits": {0: "batch"}},
         opset_version=args.opset,
+        external_data=False,
     )
 
     print(f"저장 완료: {out_path}")
@@ -79,7 +77,7 @@ def export(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Swin-T → ONNX 변환")
     parser.add_argument("--checkpoint-dir", default="./checkpoints")
-    parser.add_argument("--output-dir", default="./checkpoints")
+    parser.add_argument("--output-dir", default=".")
     parser.add_argument("--opset", type=int, default=18)
     args = parser.parse_args()
     export(args)
