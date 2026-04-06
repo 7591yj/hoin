@@ -1,6 +1,7 @@
 mod categorize;
 mod cli;
 mod embedded_model;
+mod help;
 mod model;
 
 use std::path::PathBuf;
@@ -12,6 +13,7 @@ use crate::{
     categorize::categorize,
     cli::{CategorizeArgs, Cli, Command},
     embedded_model::{extract_model, print_model_info},
+    help::print_help_overview,
 };
 
 fn main() -> Result<()> {
@@ -19,6 +21,7 @@ fn main() -> Result<()> {
 
     match cli.command {
         Some(Command::Categorize(args)) => categorize(args),
+        Some(Command::Help) => print_help_overview(),
         Some(Command::ModelInfo) => print_model_info(),
         Some(Command::ExtractModel { output_dir }) => extract_model(&output_dir),
         None => categorize(CategorizeArgs {
