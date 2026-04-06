@@ -59,3 +59,15 @@ explicit = true
 name = "pytorch-ipex"
 url = "https://pytorch-extension.intel.com/release-whl/stable/xpu/us/"
 explicit = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
