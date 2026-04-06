@@ -42,7 +42,7 @@ jobs:
       matrix:
         model: ${{ fromJson(needs.detect-models.outputs.models) }}
         target:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             archive: tar.gz
             binary: hoin
@@ -94,9 +94,11 @@ jobs:
           fi
 
           cp "target/${{ matrix.target.target }}/release/${{ matrix.target.binary }}" "${binary_path}"
+          find "target/${{ matrix.target.target }}/release" -maxdepth 1 \
+            \( -name '*.so' -o -name '*.so.*' -o -name '*.dylib' -o -name '*.dll' \) \
+            -exec cp {} "${artifact_dir}/" \;
           binary_file="$(basename "${binary_path}")"
           ./scripts/write-release-readme.sh "${artifact_dir}" "${binary_file}" "${HOIN_EMBED_MODEL}"
-
       - name: Create tarball
         if: matrix.target.archive == 'tar.gz'
         shell: bash
