@@ -51,8 +51,7 @@ def detect_device(force_xpu: bool = False, force_cpu: bool = False, device_str: 
         raise RuntimeError(
             "--xpu 플래그를 지정했지만 Intel Arc XPU를 사용할 수 없습니다.\n"
             "  1) intel-extension-for-pytorch 설치: uv sync --extra arc\n"
-            "  2) Intel GPU 드라이버 설치 확인\n"
-            "  3) docs/intel_arc_setup.md 참조"
+            "  2) Intel GPU 드라이버 설치 확인"
         )
     if IPEX_AVAILABLE and torch.xpu.is_available():
         return torch.device("xpu")
