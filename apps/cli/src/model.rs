@@ -58,7 +58,10 @@ impl ModelRuntime {
 
         let outputs = self
             .session
-            .run(ort::inputs![TensorRef::from_array_view(([1usize, 3, 224, 224], &*input))?])
+            .run(ort::inputs![TensorRef::from_array_view((
+                [1usize, 3, 224, 224],
+                &*input
+            ))?])
             .with_context(|| format!("run ONNX inference for {}", path.display()))?;
 
         let logits = extract_logits(&outputs)?;
@@ -67,15 +70,12 @@ impl ModelRuntime {
             .iter()
             .copied()
             .enumerate()
-            .max_by(|(_, left), (_, right)| {
-                left.partial_cmp(right).unwrap_or(Ordering::Equal)
-            })
+            .max_by(|(_, left), (_, right)| left.partial_cmp(right).unwrap_or(Ordering::Equal))
             .context("model produced no class probabilities")?;
-        let class_key = self
-            .class_map
-            .get(top_index)
-            .cloned()
-            .with_context(|| format!("predicted class index {top_index} missing from class map"))?;
+        let class_key =
+            self.class_map.get(top_index).cloned().with_context(|| {
+                format!("predicted class index {top_index} missing from class map")
+            })?;
 
         Ok(Classification {
             class_key,
@@ -101,7 +101,6 @@ fn parse_class_map(bytes: &[u8]) -> Result<Vec<String>> {
     let mut class_map = Vec::with_capacity(indexed.len());
 
     for (index, value) in indexed {
-
         if index != class_map.len() {
             bail!(
                 "class map must contain consecutive zero-based indexes, expected {}, got {}",
@@ -120,7 +119,7 @@ fn preprocess_image(image: &DynamicImage) -> Vec<f32> {
     let resized = image
         .resize_exact(IMAGE_SIZE, IMAGE_SIZE, FilterType::Triangle)
         .to_rgb8();
-    let mut input = vec![0.0_f32; (1 * 3 * IMAGE_SIZE * IMAGE_SIZE) as usize];
+    let mut input = vec![0.0_f32; (3 * IMAGE_SIZE * IMAGE_SIZE) as usize];
 
     for (x, y, pixel) in resized.enumerate_pixels() {
         let [r, g, b] = pixel.0;
@@ -177,9 +176,11 @@ mod tests {
     #[test]
     fn rejects_non_consecutive_class_map() {
         let error = parse_class_map(br#"{"1":"b"}"#).unwrap_err();
-        assert!(error
-            .to_string()
-            .contains("class map must contain consecutive zero-based indexes"));
+        assert!(
+            error
+                .to_string()
+                .contains("class map must contain consecutive zero-based indexes")
+        );
     }
 
     #[test]
