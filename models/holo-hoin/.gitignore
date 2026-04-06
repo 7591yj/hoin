@@ -1,0 +1,7 @@
+.venv/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+
+# Training outputs and local checkpoints
+checkpoints/

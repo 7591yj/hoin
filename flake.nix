@@ -25,10 +25,12 @@
             cargo
             clippy
             git
+            git-lfs
             just
             nixfmt
             pkg-config
             python314
+            ruff
             rust-analyzer
             rustc
             rustfmt

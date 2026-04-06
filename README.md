@@ -2,6 +2,11 @@
 
 Cross-platform CLI for one-shot image character classification
 
+## Models
+
+- [holo-hoin](models/holo-hoin/README.md): image classifier for identifying the
+  Hololive character shown in an input image
+
 ## Layout
 
 - `apps/cli`: Rust CLI

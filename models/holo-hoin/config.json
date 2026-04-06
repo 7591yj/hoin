@@ -1,0 +1,7 @@
+{
+  "num_classes": 62,
+  "img_size": 224,
+  "best_val_acc": 0.8651802458845593,
+  "test_acc": 0.8512190039591582,
+  "model": "swin_tiny_patch4_window7_224"
+}
