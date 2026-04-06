@@ -449,6 +449,15 @@ CHARACTER_META: dict[str, dict] = {
 }
 
 
+def predict_for_cli(path: str) -> dict:
+    image = Image.open(path)
+    char_key, confidence = ModelLoader.get().predict(image)
+    return {
+        "class_key": char_key,
+        "confidence": confidence,
+    }
+
+
 # ──────────────────────────────────────────────
 # Pydantic 스키마
 # ──────────────────────────────────────────────
