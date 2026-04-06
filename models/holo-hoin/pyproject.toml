@@ -2,7 +2,7 @@
 name = "holoscope"
 version = "0.1.0"
 description = "Swin Transformer-Tiny 기반 홀로라이브 캐릭터 분류기"
-requires-python =">=3.11,<3.12"
+requires-python = ">=3.11,<3.15"
 dependencies = [
     # 크롤러
     "requests>=2.31.0",
@@ -28,11 +28,11 @@ dependencies = [
 
 [project.optional-dependencies]
 logging = ["wandb>=0.16.0"]
-# Intel Arc GPU 학습 지원
+# Intel Arc GPU 학습 지원 (3.14 is not supported, IPEX wheel nonexistent)
 # 설치: uv sync --extra arc
 arc = [
-    "intel-extension-for-pytorch>=2.3.0",
-    "oneccl-bind-pt>=2.3.0",
+    "intel-extension-for-pytorch>=2.3.0 ; python_version < '3.14'",
+    "oneccl-bind-pt>=2.3.0 ; python_version < '3.14'",
 ]
 # ROCm GPU 추론: onnxruntime 대신 onnxruntime-rocm 설치
 # pip install onnxruntime-rocm  (onnxruntime과 충돌하므로 단독 사용)
