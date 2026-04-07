@@ -1,6 +1,6 @@
 use std::{error::Error, ffi::OsStr, fmt, path::PathBuf};
 
-use crate::models::holo_hoin::HoloHoinMeta;
+use crate::models::holo_hoin::{HoloHoinMeta, output_class_keys as holo_hoin_output_class_keys};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum NameLocale {
@@ -52,6 +52,13 @@ pub fn route_relative_destination(
             file_name,
         )),
         _ => Err(RoutingError::unsupported_model(model_name)),
+    }
+}
+
+pub fn class_key_for_output_index(model_name: &str, output_index: usize) -> Option<&'static str> {
+    match model_name {
+        "holo-hoin" => holo_hoin_output_class_keys().get(output_index).copied(),
+        _ => None,
     }
 }
 
@@ -107,5 +114,14 @@ mod tests {
             error.to_string(),
             "no routing strategy is registered for embedded model 'unknown-model'"
         );
+    }
+
+    #[test]
+    fn resolves_holo_hoin_output_indexes() {
+        assert_eq!(
+            class_key_for_output_index("holo-hoin", 3),
+            Some("amane_kanata")
+        );
+        assert_eq!(class_key_for_output_index("holo-hoin", 999), None);
     }
 }

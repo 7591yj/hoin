@@ -14,6 +14,71 @@ use crate::routing::NameLocale;
 
 const HOLO_HOIN_CLASS_MAP_JSON: &str = include_str!("holo_hoin_class_map_en.json");
 const HOLO_HOIN_CLASS_MAP_JA_JSON: &str = include_str!("holo_hoin_class_map_ja.json");
+// TODO: add auto guard for future edits or get info straight from the model
+const HOLO_HOIN_OUTPUT_CLASS_KEYS: &[&str] = &[
+    "airani_iofifteen",
+    "akai_haato",
+    "aki_rosenthal",
+    "amane_kanata",
+    "ayunda_risu",
+    "azki",
+    "cecilia_immergreen",
+    "ceres_fauna",
+    "elizabeth_rose_bloodflame",
+    "fuwamoco",
+    "gawr_gura",
+    "gigi_murin",
+    "hakos_baelz",
+    "hakui_koyori",
+    "himemori_luna",
+    "hiodoshi_ao",
+    "hoshimachi_suisei",
+    "houshou_marine",
+    "ichijou_ririka",
+    "juufuutei_raden",
+    "kaela_kovalskia",
+    "kazama_iroha",
+    "kobo_kanaeru",
+    "koseki_bijou",
+    "kureiji_ollie",
+    "laplus_darknesss",
+    "minato_aqua",
+    "momosuzu_nene",
+    "moona_hoshinova",
+    "mori_calliope",
+    "murasaki_shion",
+    "nakiri_ayame",
+    "nanashi_mumei",
+    "natsuiro_matsuri",
+    "nerissa_ravencroft",
+    "ninomae_inanis",
+    "omaru_polka",
+    "oozora_subaru",
+    "others",
+    "otonose_kanade",
+    "ouro_kronii",
+    "pavolia_reine",
+    "raora_panthera",
+    "roboco",
+    "sakamata_chloe",
+    "sakura_miko",
+    "shiori_novella",
+    "shirakami_fubuki",
+    "shiranui_flare",
+    "shirogane_noel",
+    "shishiro_botan",
+    "takanashi_kiara",
+    "takane_lui",
+    "todoroki_hajime",
+    "tokoyami_towa",
+    "tsunomaki_watame",
+    "usada_pekora",
+    "vestia_zeta",
+    "watson_amelia",
+    "yozora_mel",
+    "yukihana_lamy",
+    "yuzuki_choco",
+];
 static HOLO_HOIN_CLASS_MAP: OnceLock<HashMap<String, HoloHoinMeta>> = OnceLock::new();
 static HOLO_HOIN_CLASS_MAP_JA: OnceLock<HashMap<String, HoloHoinMeta>> = OnceLock::new();
 
@@ -81,6 +146,10 @@ impl HoloHoinMeta {
             .join(character)
             .join(file_name)
     }
+}
+
+pub fn output_class_keys() -> &'static [&'static str] {
+    HOLO_HOIN_OUTPUT_CLASS_KEYS
 }
 
 /// Final result document
@@ -222,6 +291,11 @@ mod tests {
         let class_map = holo_hoin_class_map();
 
         assert!(class_map.contains_key("amane_kanata"));
+    }
+
+    #[test]
+    fn output_class_keys_match_known_index() {
+        assert_eq!(output_class_keys().get(3).copied(), Some("amane_kanata"));
     }
 
     #[test]

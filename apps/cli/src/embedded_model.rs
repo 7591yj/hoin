@@ -20,14 +20,6 @@ pub(crate) fn print_model_info() -> Result<()> {
         print_artifact_line(file);
     }
 
-    if let Some(file) = model.class_map.as_ref() {
-        print_artifact_line(file);
-    }
-
-    if let Some(file) = model.config.as_ref() {
-        print_artifact_line(file);
-    }
-
     Ok(())
 }
 
@@ -39,14 +31,6 @@ pub(crate) fn extract_model(output_dir: &Path) -> Result<()> {
     write_embedded_file(output_dir, &model.onnx)?;
 
     if let Some(file) = model.onnx_data.as_ref() {
-        write_embedded_file(output_dir, file)?;
-    }
-
-    if let Some(file) = model.class_map.as_ref() {
-        write_embedded_file(output_dir, file)?;
-    }
-
-    if let Some(file) = model.config.as_ref() {
         write_embedded_file(output_dir, file)?;
     }
 

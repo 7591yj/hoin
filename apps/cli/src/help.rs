@@ -7,9 +7,9 @@ Cross-platform CLI for one-shot image character classification.
 
 Commands:
   categorize [PATH]          Classify images under PATH and move them into routed folders
-  model-info                 Show the embedded model name and bundled artifacts
+  model-info                 Show the embedded model name and bundled ONNX payloads
   extract-model --output-dir DIR
-                             Write the embedded model artifacts to DIR
+                             Write the embedded ONNX payloads to DIR
   help                       Show this guide
 
 Options for categorize:

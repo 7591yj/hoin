@@ -53,8 +53,6 @@ fn build_embedded_model_source(
         workspace_dir,
         &model_dir.join(format!("{model_name}.onnx.data")),
     );
-    let class_map = optional_file_expr(workspace_dir, &model_dir.join("class_map.json"));
-    let config = optional_file_expr(workspace_dir, &model_dir.join("config.json"));
 
     format!(
         r#"pub struct EmbeddedFile {{
@@ -66,8 +64,6 @@ pub struct EmbeddedModel {{
     pub name: &'static str,
     pub onnx: EmbeddedFile,
     pub onnx_data: Option<EmbeddedFile>,
-    pub class_map: Option<EmbeddedFile>,
-    pub config: Option<EmbeddedFile>,
 }}
 
 pub static EMBEDDED_MODEL: Option<EmbeddedModel> = Some(EmbeddedModel {{
@@ -77,16 +73,12 @@ pub static EMBEDDED_MODEL: Option<EmbeddedModel> = Some(EmbeddedModel {{
         bytes: include_bytes!({onnx_absolute:?}),
     }},
     onnx_data: {onnx_data},
-    class_map: {class_map},
-    config: {config},
 }});
 "#,
         model_name = model_name,
         onnx_relative = onnx_relative,
         onnx_absolute = onnx_absolute,
         onnx_data = onnx_data,
-        class_map = class_map,
-        config = config,
     )
 }
 
@@ -120,8 +112,6 @@ pub struct EmbeddedModel {
     pub name: &'static str,
     pub onnx: EmbeddedFile,
     pub onnx_data: Option<EmbeddedFile>,
-    pub class_map: Option<EmbeddedFile>,
-    pub config: Option<EmbeddedFile>,
 }
 
 pub static EMBEDDED_MODEL: Option<EmbeddedModel> = None;

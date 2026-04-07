@@ -47,14 +47,16 @@ Each model lives under `models/<name>/` and _must_ provide:
 - `models/<name>/build.sh`: the model-owned export script
 - `models/<name>/<name>.onnx`: the required ONNX output produced by `build.sh`
 
-Optional sidecar files such as `models/<name>/<name>.onnx.data`, `class_map.json`,
-and `config.json` may also be produced and shipped with the release artifact.
+Optional sidecar files such as `models/<name>/<name>.onnx.data` may also be produced
+when a model uses ONNX external data.
 
 The repository does not prescribe how `build.sh` works internally. It may use Python,
 `uv`, PyTorch, or any other tooling, but the repo-level interface is the ONNX artifact.
 
 Runtime inference happens inside the Rust CLI through ONNX Runtime. Python is only
 a model-development/export concern and is not required by the release executable.
+Release-visible model payloads are limited to the embedded `*.onnx` file and, when
+required by ONNX external data, the matching `*.onnx.data` sidecar.
 
 Release artifacts are native binaries for a specific OS/architecture target. Each
 binary embeds its selected model and does not require a Python runtime or external
@@ -78,7 +80,7 @@ If the repository contains:
 
 then, the release automation will produce separate binaries for `a`, `b`, and `c`.
 The selected model is chosen at compile time, and the resulting executable includes
-only that model's artifacts.
+only that model's ONNX payload.
 
 For example, `models/test/build.sh` must produce
 `models/test/test.onnx`, and the resulting binary embeds `test` rather than

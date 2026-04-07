@@ -22,9 +22,12 @@ This archive contains build of `hoin` with the `@@MODEL_NAME@@` model.
 
 - Classifies images with the embedded `@@MODEL_NAME@@` model.
 - Routes files into model-defined destination folders.
-- Can show or extract the embedded model artifacts.
+- Can show or extract the embedded ONNX payloads.
 
 ## Notes
 
 - **`categorize` modifies files** unless you pass `--dry-run`.
 - `--ja` flag will fall back to en names if ja names are unavailable.
+- Python is not required to run this release binary.
+- On Linux, the executable may still rely on normal system runtime libraries.
+- `extract-model` writes only the embedded ONNX payloads for this build.

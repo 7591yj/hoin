@@ -1,7 +1,8 @@
-use std::{cmp::Ordering, io::Cursor};
+use std::cmp::Ordering;
 
 use anyhow::{Context, Result, bail};
 use image::{DynamicImage, imageops::FilterType};
+use metadata_schema::routing::class_key_for_output_index;
 use ort::{session::Session, value::TensorRef};
 
 use crate::embedded_model::EMBEDDED_MODEL;
@@ -18,7 +19,6 @@ pub(crate) struct Classification {
 
 pub(crate) struct ModelRuntime {
     model_name: String,
-    class_map: Vec<String>,
     session: Session,
 }
 
@@ -28,11 +28,6 @@ impl ModelRuntime {
             bail!("no embedded model was compiled into this executable");
         };
 
-        let class_map_file = model
-            .class_map
-            .as_ref()
-            .context("embedded model is missing class_map.json")?;
-        let class_map = parse_class_map(class_map_file.bytes)?;
         let session = Session::builder()
             .context("create ONNX runtime session builder")?
             .commit_from_memory(model.onnx.bytes)
@@ -40,7 +35,6 @@ impl ModelRuntime {
 
         Ok(Self {
             model_name: model.name.to_owned(),
-            class_map,
             session,
         })
     }
@@ -72,9 +66,13 @@ impl ModelRuntime {
             .enumerate()
             .max_by(|(_, left), (_, right)| left.partial_cmp(right).unwrap_or(Ordering::Equal))
             .context("model produced no class probabilities")?;
-        let class_key =
-            self.class_map.get(top_index).cloned().with_context(|| {
-                format!("predicted class index {top_index} missing from class map")
+        let class_key = class_key_for_output_index(&self.model_name, top_index)
+            .map(str::to_owned)
+            .with_context(|| {
+                format!(
+                    "predicted class index {top_index} is not registered for model '{}'",
+                    self.model_name
+                )
             })?;
 
         Ok(Classification {
@@ -82,37 +80,6 @@ impl ModelRuntime {
             confidence,
         })
     }
-}
-
-fn parse_class_map(bytes: &[u8]) -> Result<Vec<String>> {
-    let unordered: std::collections::HashMap<String, String> =
-        serde_json::from_reader(Cursor::new(bytes)).context("parse embedded class_map.json")?;
-    let mut indexed = Vec::with_capacity(unordered.len());
-
-    for (key, value) in unordered {
-        let index = key
-            .parse::<usize>()
-            .with_context(|| format!("class map key '{key}' is not a valid usize"))?;
-        indexed.push((index, value));
-    }
-
-    indexed.sort_by_key(|(index, _)| *index);
-
-    let mut class_map = Vec::with_capacity(indexed.len());
-
-    for (index, value) in indexed {
-        if index != class_map.len() {
-            bail!(
-                "class map must contain consecutive zero-based indexes, expected {}, got {}",
-                class_map.len(),
-                index
-            );
-        }
-
-        class_map.push(value);
-    }
-
-    Ok(class_map)
 }
 
 fn preprocess_image(image: &DynamicImage) -> Vec<f32> {
@@ -166,22 +133,6 @@ fn softmax(logits: &[f32]) -> Vec<f32> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn parses_consecutive_class_map() {
-        let class_map = parse_class_map(br#"{"0":"a","1":"b"}"#).unwrap();
-        assert_eq!(class_map, vec!["a".to_string(), "b".to_string()]);
-    }
-
-    #[test]
-    fn rejects_non_consecutive_class_map() {
-        let error = parse_class_map(br#"{"1":"b"}"#).unwrap_err();
-        assert!(
-            error
-                .to_string()
-                .contains("class map must contain consecutive zero-based indexes")
-        );
-    }
 
     #[test]
     fn softmax_returns_probabilities() {
