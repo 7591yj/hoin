@@ -42,7 +42,7 @@ jobs:
       matrix:
         model: ${{ fromJson(needs.detect-models.outputs.models) }}
         target:
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             archive: tar.gz
             binary: hoin

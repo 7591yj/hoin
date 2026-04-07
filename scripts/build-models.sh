@@ -10,6 +10,14 @@ shift || true
 requested_models=("$@")
 ran_any=false
 
+label_for_mode() {
+  case "$1" in
+    build) printf 'Build' ;;
+    verify) printf 'Verify' ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
 should_run_model() {
   local model_name="$1"
 
@@ -43,7 +51,7 @@ for dir in models/*; do
   fi
 
   ran_any=true
-  echo "${mode^} model: ${name}"
+  echo "$(label_for_mode "${mode}") model: ${name}"
 
   bash "${script}"
 
