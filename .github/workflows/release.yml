@@ -47,10 +47,6 @@ jobs:
             archive: tar.gz
             binary: hoin
           - os: macos-latest
-            target: x86_64-apple-darwin
-            archive: tar.gz
-            binary: hoin
-          - os: macos-latest
             target: aarch64-apple-darwin
             archive: tar.gz
             binary: hoin
