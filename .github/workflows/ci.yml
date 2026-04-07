@@ -68,6 +68,8 @@ jobs:
     if: needs.detect-model.outputs.has_model == 'true'
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - name: Run model export checks
         shell: bash

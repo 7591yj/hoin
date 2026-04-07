@@ -45,6 +45,7 @@ fn build_embedded_model_source(
         "selected model '{model_name}' is missing its required ONNX artifact at {}",
         onnx_path.display()
     );
+    assert_not_git_lfs_pointer(&onnx_path, model_name);
 
     let onnx_relative = relative_from_workspace(workspace_dir, &onnx_path);
     let onnx_absolute = onnx_path.display().to_string();
@@ -87,12 +88,30 @@ fn optional_file_expr(workspace_dir: &Path, path: &Path) -> String {
         return "None".to_string();
     }
 
+    assert_not_git_lfs_pointer(path, "selected model");
+
     let relative_path = relative_from_workspace(workspace_dir, path);
     let absolute_path = path.display().to_string();
 
     format!(
         "Some(EmbeddedFile {{ relative_path: {relative_path:?}, bytes: include_bytes!({absolute_path:?}) }})",
     )
+}
+
+fn assert_not_git_lfs_pointer(path: &Path, model_name: &str) {
+    let bytes = fs::read(path).unwrap_or_else(|error| {
+        panic!(
+            "failed to read selected model '{model_name}' artifact at {}: {error}",
+            path.display()
+        )
+    });
+
+    assert!(
+        !bytes.starts_with(b"version https://git-lfs.github.com/spec/"),
+        "selected model '{model_name}' artifact at {} is a Git LFS pointer; run `git lfs pull --include={}` before building release artifacts",
+        path.display(),
+        path.display()
+    );
 }
 
 fn relative_from_workspace(workspace_dir: &Path, path: &Path) -> String {

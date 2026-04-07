@@ -34,6 +34,16 @@ should_run_model() {
   return 1
 }
 
+ensure_real_artifact() {
+  local artifact="$1"
+
+  if head -c 42 "${artifact}" | grep -q '^version https://git-lfs.github.com/spec/'; then
+    echo "Expected a real ONNX artifact, but found a Git LFS pointer: ${artifact}" >&2
+    echo "Run 'git lfs pull --include=${artifact}' before building release artifacts." >&2
+    exit 1
+  fi
+}
+
 for dir in models/*; do
   [ -d "${dir}" ] || continue
 
@@ -59,6 +69,8 @@ for dir in models/*; do
     echo "Expected ONNX artifact was not produced: ${output}" >&2
     exit 1
   fi
+
+  ensure_real_artifact "${output}"
 done
 
 if [ "${ran_any}" = false ]; then
