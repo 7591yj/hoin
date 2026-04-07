@@ -7,25 +7,23 @@ Cross-platform CLI for one-shot image character classification.
 
 Commands:
   categorize [PATH]          Classify images under PATH and move them into routed folders
-  model-info                 Show the embedded model name and bundled ONNX payloads
-  extract-model --output-dir DIR
-                             Write the embedded ONNX payloads to DIR
+  model-info                 Show the selected model name and ONNX payloads
   help                       Show this guide
 
 Options for categorize:
+  --model-dir <DIR>          Use this model package directory (or HOIN_MODEL_DIR)
   --dry-run                  Print planned moves without modifying files
   --ja                       Use Japanese character names when supported
   --min-confidence <FLOAT>   Skip results below the threshold (default: 0.3)
 
 Examples:
-  hoin categorize .
-  hoin categorize --dry-run /path/to/images
-  hoin categorize --dry-run --ja /path/to/images
-  hoin model-info
-  hoin extract-model --output-dir ./extracted-model
+  hoin categorize --model-dir ./models/holo-hoin .
+  hoin categorize --model-dir ./models/holo-hoin --dry-run /path/to/images
+  hoin categorize --model-dir ./models/holo-hoin --dry-run --ja /path/to/images
+  hoin model-info --model-dir ./models/holo-hoin
 
 Notes:
-  - This binary embeds exactly one model at build time.
+  - Model packages are selected with --model-dir, HOIN_MODEL_DIR, or a single ./models/<name> package.
   - Running without a subcommand behaves like `hoin categorize .`.
   - Use `hoin --help` for the clap-generated flag summary.
 ";
@@ -43,6 +41,6 @@ mod tests {
     #[test]
     fn help_overview_mentions_japanese_option() {
         assert!(HELP_OVERVIEW.contains("--ja"));
-        assert!(HELP_OVERVIEW.contains("extract-model"));
+        assert!(HELP_OVERVIEW.contains("--model-dir"));
     }
 }

@@ -1,11 +1,11 @@
 use std::cmp::Ordering;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 use image::{DynamicImage, imageops::FilterType};
 use metadata_schema::routing::class_key_for_output_index;
 use ort::{session::Session, value::TensorRef};
 
-use crate::embedded_model::EMBEDDED_MODEL;
+use crate::model_package::ModelPackage;
 
 const IMAGE_SIZE: u32 = 224;
 const IMAGE_NET_MEAN: [f32; 3] = [0.485, 0.456, 0.406];
@@ -23,18 +23,16 @@ pub(crate) struct ModelRuntime {
 }
 
 impl ModelRuntime {
-    pub(crate) fn load() -> Result<Self> {
-        let Some(model) = EMBEDDED_MODEL.as_ref() else {
-            bail!("no embedded model was compiled into this executable");
-        };
+    pub(crate) fn load(model_dir: Option<&std::path::Path>) -> Result<Self> {
+        let model = ModelPackage::load(model_dir)?;
 
         let session = Session::builder()
             .context("create ONNX runtime session builder")?
-            .commit_from_memory(model.onnx.bytes)
-            .context("load embedded ONNX model into ONNX runtime")?;
+            .commit_from_file(&model.onnx_path)
+            .with_context(|| format!("load ONNX model {}", model.onnx_path.display()))?;
 
         Ok(Self {
-            model_name: model.name.to_owned(),
+            model_name: model.name,
             session,
         })
     }

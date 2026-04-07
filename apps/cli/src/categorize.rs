@@ -32,7 +32,7 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
         .path
         .canonicalize()
         .with_context(|| format!("resolve root path {}", args.path.display()))?;
-    let mut runtime = ModelRuntime::load()?;
+    let mut runtime = ModelRuntime::load(args.model_dir.as_deref())?;
     let files = discover_files(&root)?;
     let routing_preferences = RoutingPreferences {
         name_locale: if args.ja {

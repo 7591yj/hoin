@@ -17,22 +17,23 @@ pub(crate) struct Cli {
 pub(crate) enum Command {
     Categorize(CategorizeArgs),
     Help,
-    ModelInfo,
-    ExtractModel {
+    ModelInfo {
         #[arg(long)]
-        output_dir: PathBuf,
+        model_dir: Option<PathBuf>,
     },
 }
 
 #[derive(Debug, Clone, Args)]
 pub(crate) struct CategorizeArgs {
+    #[arg(long)]
+    pub(crate) model_dir: Option<PathBuf>,
     #[arg(default_value = ".")]
     pub(crate) path: PathBuf,
     #[arg(long)]
     pub(crate) dry_run: bool,
     #[arg(
         long,
-        help = "Use Japanese character names when supported by the embedded model"
+        help = "Use Japanese character names when supported by the selected model"
     )]
     pub(crate) ja: bool,
     #[arg(long, default_value_t = DEFAULT_MIN_CONFIDENCE)]
