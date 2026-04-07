@@ -8,12 +8,12 @@ Build the CLI in this repository or download a release binary, then run:
 
 ```bash
 hoin help
-hoin model-info
-hoin categorize --dry-run <image-dir>
+hoin model-info --model-dir ./models/holo-hoin
+hoin categorize --model-dir ./models/holo-hoin --dry-run <image-dir>
 ```
 
 For model-specific usage, see the README in `models/<name>/`. Release artifacts ship
-with a separate README focused on binary usage.
+with separate READMEs for CLI archives and model archives.
 
 ## Models
 
@@ -55,13 +55,15 @@ The repository does not prescribe how `build.sh` works internally. It may use Py
 
 Runtime inference happens inside the Rust CLI through ONNX Runtime. Python is only
 a model-development/export concern and is not required by the release executable.
-Release-visible model payloads are limited to the embedded `*.onnx` file and, when
-required by ONNX external data, the matching `*.onnx.data` sidecar.
+Release-visible model payloads are packaged as standalone model archives containing
+the `*.onnx` file, a `hoin-model.json` manifest, and optional sidecars such as
+`*.onnx.data`, `class_map.json`, or `config.json`.
 
-Release artifacts are native binaries for a specific OS/architecture target. Each
-binary embeds its selected model and does not require a Python runtime or external
-model files at execution time, but it may still rely on the target platform's normal
-system runtime libraries and loader conventions (for example libc/libstdc++ on Linux,
+CLI release artifacts are native binaries for a specific OS/architecture target.
+They do not include model payloads. Download a CLI archive for the target OS and
+one or more OS-independent model archives, then select a model with `--model-dir`
+or `HOIN_MODEL_DIR`. The CLI may still rely on the target platform's normal system
+runtime libraries and loader conventions (for example libc/libstdc++ on Linux,
 system frameworks and loader rules on macOS, or the Windows runtime environment).
 
 File routing is owned by Rust, not by the model runtime. `packages/metadata-schema`
@@ -70,7 +72,8 @@ paths.
 
 ## Releases
 
-Each release executable embeds exactly one model.
+Releases publish CLI archives per OS/architecture target and model archives per
+model. The CLI is built once per OS target and can run any compatible model package.
 
 If the repository contains:
 
@@ -78,10 +81,9 @@ If the repository contains:
 - `models/b/`
 - `models/c/`
 
-then, the release automation will produce separate binaries for `a`, `b`, and `c`.
-The selected model is chosen at compile time, and the resulting executable includes
-only that model's ONNX payload.
+then, the release automation will produce one model archive for `a`, one for `b`,
+and one for `c`, plus the OS-specific CLI archives.
 
 For example, `models/test/build.sh` must produce
-`models/test/test.onnx`, and the resulting binary embeds `test` rather than
-every model in the repository.
+`models/test/test.onnx`, and the release model package will include
+`models/test/test.onnx` plus a generated `models/test/hoin-model.json` manifest.
