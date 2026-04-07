@@ -32,15 +32,12 @@ jobs:
             echo "has_model=true" >> "$GITHUB_OUTPUT"
           fi
 
-  build:
-    name: Build ${{ matrix.model.name }} for ${{ matrix.target.target }}
+  build-cli:
+    name: Build CLI for ${{ matrix.target.target }}
     runs-on: ${{ matrix.target.os }}
-    needs: detect-models
-    if: needs.detect-models.outputs.has_model == 'true'
     strategy:
       fail-fast: false
       matrix:
-        model: ${{ fromJson(needs.detect-models.outputs.models) }}
         target:
           - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
@@ -54,12 +51,8 @@ jobs:
             target: x86_64-pc-windows-msvc
             archive: zip
             binary: hoin.exe
-    env:
-      HOIN_EMBED_MODEL: ${{ matrix.model.name }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          lfs: true
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -69,11 +62,6 @@ jobs:
       - name: Cache cargo artifacts
         uses: Swatinem/rust-cache@v2
 
-      - name: Build model artifact
-        shell: bash
-        run: |
-          ./scripts/build-models.sh build "${HOIN_EMBED_MODEL}"
-
       - name: Build release binary
         run: cargo build --release --locked --package hoin-cli --target ${{ matrix.target.target }}
 
@@ -81,14 +69,13 @@ jobs:
         shell: bash
         run: |
           version="${GITHUB_REF_NAME#v}"
-          artifact_dir="dist/hoin-${version}-${HOIN_EMBED_MODEL}-${{ matrix.target.target }}"
+          artifact_dir="dist/hoin-${version}-${{ matrix.target.target }}"
           mkdir -p "${artifact_dir}"
 
-          binary_name="hoin-${HOIN_EMBED_MODEL}"
-          binary_path="${artifact_dir}/${binary_name}"
+          binary_path="${artifact_dir}/hoin"
 
           if [ "${{ matrix.target.binary }}" = "hoin.exe" ]; then
-            binary_path="${binary_path}.exe"
+            binary_path="${artifact_dir}/hoin.exe"
           fi
 
           cp "target/${{ matrix.target.target }}/release/${{ matrix.target.binary }}" "${binary_path}"
@@ -96,13 +83,14 @@ jobs:
             \( -name '*.so' -o -name '*.so.*' -o -name '*.dylib' -o -name '*.dll' \) \
             -exec cp {} "${artifact_dir}/" \;
           binary_file="$(basename "${binary_path}")"
-          ./scripts/write-release-readme.sh "${artifact_dir}" "${binary_file}" "${HOIN_EMBED_MODEL}"
+          ./scripts/write-release-readme.sh "${artifact_dir}" "${binary_file}"
+
       - name: Create tarball
         if: matrix.target.archive == 'tar.gz'
         shell: bash
         run: |
           version="${GITHUB_REF_NAME#v}"
-          artifact_name="hoin-${version}-${HOIN_EMBED_MODEL}-${{ matrix.target.target }}"
+          artifact_name="hoin-${version}-${{ matrix.target.target }}"
           tar -C dist -czf "dist/${artifact_name}.tar.gz" "${artifact_name}"
 
       - name: Create zip
@@ -110,21 +98,55 @@ jobs:
         shell: pwsh
         run: |
           $version = $env:GITHUB_REF_NAME.Substring(1)
-          $artifactName = "hoin-$version-$env:HOIN_EMBED_MODEL-${{ matrix.target.target }}"
+          $artifactName = "hoin-$version-${{ matrix.target.target }}"
           Compress-Archive -Path "dist/$artifactName/*" -DestinationPath "dist/$artifactName.zip"
 
       - name: Upload packaged artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-${{ matrix.model.name }}-${{ matrix.target.target }}
+          name: release-cli-${{ matrix.target.target }}
           path: |
             dist/*.tar.gz
             dist/*.zip
 
+  build-model:
+    name: Build model ${{ matrix.model.name }}
+    runs-on: ubuntu-latest
+    needs: detect-models
+    if: needs.detect-models.outputs.has_model == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        model: ${{ fromJson(needs.detect-models.outputs.models) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Build model artifact
+        shell: bash
+        run: |
+          ./scripts/build-models.sh build "${{ matrix.model.name }}"
+
+      - name: Package model
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          ./scripts/package-release-model.sh "${{ matrix.model.name }}" "${version}" dist
+
+      - name: Upload packaged model
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-model-${{ matrix.model.name }}
+          path: dist/*.tar.gz
+
   publish:
     name: Publish release
     runs-on: ubuntu-latest
-    needs: build
+    needs:
+      - build-cli
+      - build-model
+    if: always() && needs.build-cli.result == 'success' && (needs.build-model.result == 'success' || needs.build-model.result == 'skipped')
     steps:
       - uses: actions/download-artifact@v4
         with:
