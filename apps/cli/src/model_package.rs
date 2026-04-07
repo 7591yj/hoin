@@ -211,6 +211,7 @@ mod tests {
         fs::write(model_dir.join("example.onnx"), b"onnx").unwrap();
 
         let package = ModelPackage::load(Some(&model_dir)).unwrap();
+        let model_dir = model_dir.canonicalize().unwrap();
 
         assert_eq!(package.name, "example");
         assert_eq!(package.onnx_path, model_dir.join("example.onnx"));
@@ -232,6 +233,7 @@ mod tests {
         fs::write(model_dir.join("artifacts/model.onnx.data"), b"data").unwrap();
 
         let package = ModelPackage::load(Some(&model_dir)).unwrap();
+        let model_dir = model_dir.canonicalize().unwrap();
 
         assert_eq!(package.name, "example");
         assert_eq!(package.onnx_path, model_dir.join("artifacts/model.onnx"));
