@@ -11,7 +11,6 @@ import json
 from pathlib import Path
 
 import numpy as np
-import timm
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -21,6 +20,7 @@ from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 from tqdm import tqdm
 
 from .data import VALID_EXT, get_train_transforms, get_val_transforms
+from .modeling import build_classifier
 
 # ──────────────────────────────────────────────
 # 디바이스
@@ -192,10 +192,8 @@ def main(args):
     )
 
     # 모델 로드 (62클래스 구조 그대로)
-    model = timm.create_model(
-        "swin_tiny_patch4_window7_224", pretrained=False, num_classes=num_classes
-    )
     best_pth = save_dir / "holo-hoin.pth"
+    model = build_classifier(num_classes=num_classes)
     model.load_state_dict(torch.load(best_pth, weights_only=True, map_location=device))
     model = model.to(device)
     print(f"모델 로드: {best_pth}")

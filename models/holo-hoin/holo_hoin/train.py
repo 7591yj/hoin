@@ -380,13 +380,15 @@ def train(args):
         model, optimizer = ipex.optimize(model, optimizer=optimizer, dtype=dtype)
 
     p2_start = 1
-    if resume_phase == 2:
+    if resume_phase == 2 and ckpt is not None:
         patience_counter = ckpt["patience_counter"]
         optimizer.load_state_dict(ckpt["optimizer_state"])
         scheduler.load_state_dict(ckpt["scheduler_state"])
         if ckpt.get("scaler_state"):
             scaler.load_state_dict(ckpt["scaler_state"])
         p2_start = resume_epoch + 1
+    elif resume_phase == 2:
+        patience_counter = 0
     else:
         patience_counter = 0  # Phase 2 새로 시작 시 리셋
 
@@ -441,7 +443,9 @@ def train(args):
     # ────────────────────────────────
     print(f"\n{'─' * 40}")
     print("테스트 세트 평가")
-    model.load_state_dict(torch.load(save_dir / "holo-hoin.pth", weights_only=True))
+    model.load_state_dict(
+        torch.load(save_dir / "holo-hoin.pth", weights_only=True, map_location=device)
+    )
     test_loss, test_acc, per_class_acc = test_epoch(
         model, test_loader, criterion, device, use_amp, num_classes
     )
