@@ -29,6 +29,7 @@ Model-owned source and release artifacts for the `holo-hoin` model
 ```bash
 ./build.sh
 uv run python export_onnx.py --checkpoint-dir ./checkpoints --output-dir .
+uv run python eval_onnx.py
 uv run python train.py --save-dir ./checkpoints
 ```
 
@@ -36,5 +37,6 @@ Equivalent module commands are also available:
 
 ```bash
 uv run python -m holo_hoin.export_onnx --checkpoint-dir ./checkpoints --output-dir .
+uv run python -m holo_hoin.eval_onnx
 uv run python -m holo_hoin.train --save-dir ./checkpoints
 ```
