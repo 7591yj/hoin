@@ -1,5 +1,135 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><title>hoin</title></head>
-<body><p>loading…</p></body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>hoin</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>hoin</h1>
+        <span class="badge">image classifier</span>
+      </header>
+
+      <main>
+        <!-- Sidebar -->
+        <aside id="sidebar">
+          <!-- Model -->
+          <section>
+            <div class="section-title">Model</div>
+            <div class="field">
+              <label>Models root directory</label>
+              <div class="input-row">
+                <input
+                  id="models-root"
+                  type="text"
+                  placeholder="/path/to/models"
+                />
+                <button id="scan-models-btn">Scan</button>
+              </div>
+            </div>
+            <div class="field" style="margin-top: 8px">
+              <label>Selected model</label>
+              <select id="model-select">
+                <option value="">— none —</option>
+              </select>
+            </div>
+            <div class="field" style="margin-top: 6px">
+              <label>Or enter model dir directly</label>
+              <input
+                id="model-dir-input"
+                type="text"
+                placeholder="/path/to/model-dir"
+              />
+            </div>
+            <div id="model-error" class="error-msg" hidden></div>
+          </section>
+
+          <!-- Target dir -->
+          <section>
+            <div class="section-title">Target directory</div>
+            <div class="field">
+              <div class="input-row">
+                <input
+                  id="target-dir"
+                  type="text"
+                  placeholder="/path/to/images"
+                />
+              </div>
+              <div id="target-error" class="error-msg" hidden></div>
+            </div>
+          </section>
+
+          <!-- Options -->
+          <section>
+            <div class="section-title">Options</div>
+            <div class="field">
+              <label>Min confidence</label>
+              <input
+                id="min-confidence"
+                type="number"
+                value="0.3"
+                min="0"
+                max="1"
+                step="0.05"
+              />
+            </div>
+            <div class="toggle-row" style="margin-top: 8px">
+              <input type="checkbox" id="ja-toggle" />
+              <label for="ja-toggle">Japanese character names</label>
+            </div>
+          </section>
+
+          <!-- Actions -->
+          <section style="margin-top: auto">
+            <button id="categorize-btn" class="primary" style="width: 100%">
+              Categorize
+            </button>
+            <button
+              id="revert-btn"
+              class="danger"
+              style="width: 100%; margin-top: 8px; display: none"
+            >
+              Revert last operation
+            </button>
+          </section>
+        </aside>
+
+        <!--  Content  -->
+        <div id="content">
+          <!-- Preview tree (hidden until dry-run) -->
+          <div id="preview-panel" hidden>
+            <h2>
+              Planned moves
+              <span class="count" id="preview-count"></span>
+            </h2>
+            <div class="tree" id="tree-root"></div>
+            <div class="preview-actions">
+              <button id="confirm-btn" class="primary">Confirm & apply</button>
+              <button id="cancel-btn">Cancel</button>
+            </div>
+          </div>
+
+          <!-- Summary (hidden until apply) -->
+          <div id="summary-panel" hidden>
+            <h2>Result</h2>
+            <div class="summary-grid" id="summary-grid"></div>
+          </div>
+
+          <!-- Thumbnails -->
+          <div id="thumbnails">
+            <p class="empty-state">Select a target directory to see files.</p>
+          </div>
+        </div>
+      </main>
+
+      <div id="statusbar">
+        <div class="spinner"></div>
+        <span id="status-text">Ready</span>
+      </div>
+    </div>
+    <script src="app.js"></script>
+  </body>
 </html>

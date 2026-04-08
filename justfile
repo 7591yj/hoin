@@ -33,5 +33,8 @@ build-models *models:
 run-cli *args:
   cargo run -p hoin-cli -- {{args}}
 
+serve:
+  cd apps/web && bun run src/server.ts
+
 check-models *models:
   ./scripts/build-models.sh verify {{models}}
