@@ -29,6 +29,7 @@ fn main() -> Result<()> {
             dry_run: false,
             ja: false,
             min_confidence: cli::DEFAULT_MIN_CONFIDENCE,
+            json: false,
         }),
     }
 }

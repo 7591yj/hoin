@@ -5,6 +5,7 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use metadata_schema::routing::{NameLocale, RoutingPreferences, route_relative_destination};
+use serde::Serialize;
 use walkdir::WalkDir;
 
 use crate::{cli::CategorizeArgs, model::ModelRuntime};
@@ -18,6 +19,54 @@ struct Summary {
     low_confidence_skipped: usize,
     already_categorized: usize,
     failed: usize,
+}
+
+#[derive(Debug, Serialize)]
+struct MoveEntry {
+    from: PathBuf,
+    to: PathBuf,
+    class_key: String,
+    confidence: f32,
+}
+
+#[derive(Debug, Serialize)]
+struct SkippedEntry {
+    file: PathBuf,
+    reason: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    confidence: Option<f32>,
+}
+
+#[derive(Debug, Serialize)]
+struct AlreadyCategorizedEntry {
+    file: PathBuf,
+}
+
+#[derive(Debug, Serialize)]
+struct FailedEntry {
+    file: PathBuf,
+    reason: String,
+}
+
+#[derive(Debug, Serialize)]
+struct JsonSummary {
+    scanned: usize,
+    image_candidates: usize,
+    moves: usize,
+    routed_to_others: usize,
+    low_confidence_skipped: usize,
+    already_categorized: usize,
+    failed: usize,
+}
+
+#[derive(Debug, Serialize)]
+struct JsonOutput {
+    dry_run: bool,
+    moves: Vec<MoveEntry>,
+    skipped: Vec<SkippedEntry>,
+    already_categorized: Vec<AlreadyCategorizedEntry>,
+    failed: Vec<FailedEntry>,
+    summary: JsonSummary,
 }
 
 pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
@@ -43,7 +92,27 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
     };
 
     if files.is_empty() {
-        println!("No files found under {}", root.display());
+        if args.json {
+            let output = JsonOutput {
+                dry_run: args.dry_run,
+                moves: vec![],
+                skipped: vec![],
+                already_categorized: vec![],
+                failed: vec![],
+                summary: JsonSummary {
+                    scanned: 0,
+                    image_candidates: 0,
+                    moves: 0,
+                    routed_to_others: 0,
+                    low_confidence_skipped: 0,
+                    already_categorized: 0,
+                    failed: 0,
+                },
+            };
+            println!("{}", serde_json::to_string(&output)?);
+        } else {
+            println!("No files found under {}", root.display());
+        }
         return Ok(());
     }
 
@@ -53,26 +122,46 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
         ..Summary::default()
     };
 
+    let mut json_moves: Vec<MoveEntry> = vec![];
+    let mut json_skipped: Vec<SkippedEntry> = vec![];
+    let mut json_already_categorized: Vec<AlreadyCategorizedEntry> = vec![];
+    let mut json_failed: Vec<FailedEntry> = vec![];
+
     for source in files {
         match runtime.classify_path(&source) {
             Ok(classification) => {
                 if classification.confidence < args.min_confidence {
                     summary.low_confidence_skipped += 1;
-                    println!(
-                        "warn: skipped {} due to low confidence {:.3} (< {:.3})",
-                        source.display(),
-                        classification.confidence,
-                        args.min_confidence
-                    );
+                    if args.json {
+                        json_skipped.push(SkippedEntry {
+                            file: source,
+                            reason: "low_confidence",
+                            confidence: Some(classification.confidence),
+                        });
+                    } else {
+                        println!(
+                            "warn: skipped {} due to low confidence {:.3} (< {:.3})",
+                            source.display(),
+                            classification.confidence,
+                            args.min_confidence
+                        );
+                    }
                     continue;
                 }
 
                 let Some(file_name) = source.file_name() else {
                     summary.failed += 1;
-                    println!(
-                        "warn: failed to process {}: missing file name",
-                        source.display()
-                    );
+                    if args.json {
+                        json_failed.push(FailedEntry {
+                            file: source,
+                            reason: "missing file name".to_string(),
+                        });
+                    } else {
+                        println!(
+                            "warn: failed to process {}: missing file name",
+                            source.display()
+                        );
+                    }
                     continue;
                 };
                 let relative_destination = match route_relative_destination(
@@ -84,7 +173,14 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
                     Ok(path) => path,
                     Err(error) => {
                         summary.failed += 1;
-                        println!("warn: failed to process {}: {}", source.display(), error);
+                        if args.json {
+                            json_failed.push(FailedEntry {
+                                file: source,
+                                reason: error.to_string(),
+                            });
+                        } else {
+                            println!("warn: failed to process {}: {}", source.display(), error);
+                        }
                         continue;
                     }
                 };
@@ -92,7 +188,12 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
 
                 if source == destination {
                     summary.already_categorized += 1;
-                    println!("ok: already categorized {}", source.display());
+                    if args.json {
+                        json_already_categorized
+                            .push(AlreadyCategorizedEntry { file: source });
+                    } else {
+                        println!("ok: already categorized {}", source.display());
+                    }
                     continue;
                 }
 
@@ -106,34 +207,79 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
                 }
 
                 if args.dry_run {
-                    println!(
-                        "plan: {} -> {} ({}, confidence {:.3})",
-                        source.display(),
-                        final_destination.display(),
-                        classification.class_key,
-                        classification.confidence
-                    );
+                    if args.json {
+                        json_moves.push(MoveEntry {
+                            from: source,
+                            to: final_destination,
+                            class_key: classification.class_key,
+                            confidence: classification.confidence,
+                        });
+                    } else {
+                        println!(
+                            "plan: {} -> {} ({}, confidence {:.3})",
+                            source.display(),
+                            final_destination.display(),
+                            classification.class_key,
+                            classification.confidence
+                        );
+                    }
                 } else {
                     move_file(&source, &final_destination)?;
-                    println!(
-                        "moved: {} -> {} ({}, confidence {:.3})",
-                        source.display(),
-                        final_destination.display(),
-                        classification.class_key,
-                        classification.confidence
-                    );
+                    if args.json {
+                        json_moves.push(MoveEntry {
+                            from: source,
+                            to: final_destination,
+                            class_key: classification.class_key,
+                            confidence: classification.confidence,
+                        });
+                    } else {
+                        println!(
+                            "moved: {} -> {} ({}, confidence {:.3})",
+                            source.display(),
+                            final_destination.display(),
+                            classification.class_key,
+                            classification.confidence
+                        );
+                    }
                 }
 
                 summary.moved += 1;
             }
             Err(error) => {
                 summary.failed += 1;
-                println!("warn: failed to process {}: {error:#}", source.display());
+                if args.json {
+                    json_failed.push(FailedEntry {
+                        file: source,
+                        reason: format!("{error:#}"),
+                    });
+                } else {
+                    println!("warn: failed to process {}: {error:#}", source.display());
+                }
             }
         }
     }
 
-    print_summary(&summary, args.dry_run);
+    if args.json {
+        let output = JsonOutput {
+            dry_run: args.dry_run,
+            moves: json_moves,
+            skipped: json_skipped,
+            already_categorized: json_already_categorized,
+            failed: json_failed,
+            summary: JsonSummary {
+                scanned: summary.scanned,
+                image_candidates: summary.image_candidates,
+                moves: summary.moved,
+                routed_to_others: summary.routed_to_others,
+                low_confidence_skipped: summary.low_confidence_skipped,
+                already_categorized: summary.already_categorized,
+                failed: summary.failed,
+            },
+        };
+        println!("{}", serde_json::to_string(&output)?);
+    } else {
+        print_summary(&summary, args.dry_run);
+    }
     Ok(())
 }
 
