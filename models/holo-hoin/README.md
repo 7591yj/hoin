@@ -14,6 +14,7 @@ Model-owned source and release artifacts for the `holo-hoin` model
 - `build.sh` is the only repository-level entry point for producing deployable artifacts
 - `holo-hoin.onnx` is the release artifact and is a single-file ONNX
 - `class_map.json` and `config.json` are optional sidecar artifacts shipped with
+- Runtime serving belongs to the Rust CLI release path, not a Python API server
 
 ## Working Layout
 

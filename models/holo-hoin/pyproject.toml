@@ -17,10 +17,6 @@ dependencies = [
     "timm>=0.9.12",
     "albumentations>=1.3.1",
     "numpy>=1.24.0",
-    # API
-    "fastapi>=0.109.0",
-    "uvicorn[standard]>=0.27.0",
-    "python-multipart>=0.0.9",
     # 추론 엔진 (CPU EP 기본 포함)
     "onnxruntime>=1.17.0",
     "onnxscript>=0.6.2",
@@ -34,9 +30,8 @@ arc = [
     "intel-extension-for-pytorch>=2.3.0 ; python_version < '3.14'",
     "oneccl-bind-pt>=2.3.0 ; python_version < '3.14'",
 ]
-# ROCm GPU 추론: onnxruntime 대신 onnxruntime-rocm 설치
+# ROCm GPU ONNX test: onnxruntime 대신 onnxruntime-rocm 설치
 # pip install onnxruntime-rocm  (onnxruntime과 충돌하므로 단독 사용)
-# 실행 시: HSA_OVERRIDE_GFX_VERSION=11.0.0 uv run python main.py
 
 [tool.uv.sources]
 torch = [
