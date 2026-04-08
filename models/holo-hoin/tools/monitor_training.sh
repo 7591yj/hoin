@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 # HoloScope 학습 모니터
 
-LOG="${1:-train_cpu.log}"
-CKPT="checkpoints/checkpoint.pth"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+LOG="${1:-"${PROJECT_DIR}/train_cpu.log"}"
+CKPT="${PROJECT_DIR}/checkpoints/checkpoint.pth"
 REFRESH=3
 
 # 색상
 RED='\033[0;31m'; YELLOW='\033[1;33m'; GREEN='\033[0;32m'
 CYAN='\033[0;36m'; BOLD='\033[1m'; DIM='\033[2m'; RESET='\033[0m'
-BLUE='\033[0;34m'; MAGENTA='\033[0;35m'
+MAGENTA='\033[0;35m'
 
 while true; do
     clear
@@ -45,14 +48,6 @@ while true; do
     # ── 완료된 epoch 파싱 ─────────────────────────────────
     # tqdm \r 제거 후 epoch 결과 라인만 추출
     EPOCH_LINES=$(tr '\r' '\n' < "$LOG" | grep -oP "Epoch\s+\d+/\d+ \| train_loss:.*val_acc: [0-9.]+")
-
-    # 현재 phase 감지
-    IN_PHASE2=$(tr '\r' '\n' < "$LOG" | grep -c "^Phase 2 시작")
-    if [[ "$IN_PHASE2" -ge 1 ]]; then
-        CUR_PHASE=2
-    else
-        CUR_PHASE=1
-    fi
 
     # Phase 1 epoch 수
     P1_TOTAL=$(grep -m1 "phase1_epochs\|Phase 1 시작" "$LOG" | grep -oP '\d+(?= epochs)' | head -1)
