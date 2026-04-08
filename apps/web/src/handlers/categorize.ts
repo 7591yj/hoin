@@ -17,7 +17,9 @@ async function parseBody(req: Request): Promise<CategorizeBody> {
   }
 }
 
-function validateBody(body: CategorizeBody): { modelDir: string; targetDir: string; ja: boolean; minConfidence: number } | { error: string } {
+function validateBody(
+  body: CategorizeBody,
+): { modelDir: string; targetDir: string; ja: boolean; minConfidence: number } | { error: string } {
   if (typeof body.modelDir !== "string" || !body.modelDir) return { error: "modelDir required" };
   if (typeof body.targetDir !== "string" || !body.targetDir) return { error: "targetDir required" };
   return {

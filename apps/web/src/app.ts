@@ -125,8 +125,7 @@ targetDirInput.addEventListener("change", loadThumbnails);
 async function loadThumbnails(): Promise<void> {
   const dir = targetDirInput.value.trim();
   if (!dir) {
-    thumbnailsEl.innerHTML =
-      '<p class="empty-state">Select a target directory to see files.</p>';
+    thumbnailsEl.innerHTML = '<p class="empty-state">Select a target directory to see files.</p>';
     return;
   }
   showError(targetError, "");
@@ -137,8 +136,7 @@ async function loadThumbnails(): Promise<void> {
     );
     const images = entries.filter((e) => e.isImage);
     if (images.length === 0) {
-      thumbnailsEl.innerHTML =
-        '<p class="empty-state">No images found in this directory.</p>';
+      thumbnailsEl.innerHTML = '<p class="empty-state">No images found in this directory.</p>';
     } else {
       thumbnailsEl.innerHTML = images
         .map(
@@ -215,8 +213,7 @@ function renderTree(result: CategorizeResult): void {
 
   const dirs = Object.keys(tree).sort();
   if (dirs.length === 0) {
-    treeRoot.innerHTML =
-      '<span style="color:var(--muted)">No moves planned.</span>';
+    treeRoot.innerHTML = '<span style="color:var(--muted)">No moves planned.</span>';
     return;
   }
 
@@ -326,9 +323,7 @@ revertBtn.addEventListener("click", async () => {
 //  Session
 async function refreshSession(): Promise<void> {
   try {
-    const { hasLastOperation } = await apiFetch<{ hasLastOperation: boolean }>(
-      "/api/session",
-    );
+    const { hasLastOperation } = await apiFetch<{ hasLastOperation: boolean }>("/api/session");
     revertBtn.style.display = hasLastOperation ? "block" : "none";
   } catch {
     // ignore

@@ -48,7 +48,8 @@ export async function runCategorize(opts: CategorizeOptions): Promise<Categorize
 
   const args = [
     "categorize",
-    "--model-dir", opts.modelDir,
+    "--model-dir",
+    opts.modelDir,
     "--json",
     ...(opts.dryRun ? ["--dry-run"] : []),
     ...(opts.ja ? ["--ja"] : []),
