@@ -22,6 +22,7 @@
       {
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
+            bun
             cargo
             clippy
             git

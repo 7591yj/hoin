@@ -1,0 +1,12 @@
+{
+  "name": "hoin-web",
+  "version": "0.1.0",
+  "description": "Web UI for hoin",
+  "scripts": {
+    "dev": "bun run src/server.ts",
+    "start": "bun run src/server.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
