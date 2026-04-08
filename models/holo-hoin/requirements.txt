@@ -1,3 +1,6 @@
+# pip compatibility export.
+# pyproject.toml and uv.lock are the source of truth for development.
+
 # 크롤러
 requests>=2.31.0
 tqdm>=4.66.0

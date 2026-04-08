@@ -17,8 +17,11 @@ Model-owned source and release artifacts for the `holo-hoin` model
 
 ## Working Layout
 
-- Python source and helper scripts live at the directory root
+- Core Python logic lives under `holo_hoin/`
+- Root Python files are compatibility wrappers for the existing commands
 - Local training checkpoints belong under `checkpoints/` (ignored by Git)
+- `pyproject.toml` and `uv.lock` are the source of truth for Python dependencies
+- `requirements.txt` is kept for pip compatibility only
 
 ## Common Tasks
 
@@ -26,4 +29,11 @@ Model-owned source and release artifacts for the `holo-hoin` model
 ./build.sh
 uv run python export_onnx.py --checkpoint-dir ./checkpoints --output-dir .
 uv run python train.py --save-dir ./checkpoints
+```
+
+Equivalent module commands are also available:
+
+```bash
+uv run python -m holo_hoin.export_onnx --checkpoint-dir ./checkpoints --output-dir .
+uv run python -m holo_hoin.train --save-dir ./checkpoints
 ```
