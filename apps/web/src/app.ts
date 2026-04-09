@@ -37,6 +37,8 @@ interface ModelEntry {
 
 //  State
 let pendingPreview: CategorizeResult | null = null;
+// Map from absolute file path → { class_key, confidence } after dry-run
+let previewMap: Map<string, { class_key: string; confidence: number }> = new Map();
 
 //  DOM refs
 function el<T extends HTMLElement>(id: string): T {
@@ -139,14 +141,18 @@ async function loadThumbnails(): Promise<void> {
       thumbnailsEl.innerHTML = '<p class="empty-state">No images found in this directory.</p>';
     } else {
       thumbnailsEl.innerHTML = images
-        .map(
-          (e) => `
-        <div class="thumb">
-          <img src="/api/thumbnail?path=${encodeURIComponent(e.path)}" loading="lazy" alt="${e.name}" />
-          <div class="thumb-name">${e.name}</div>
-        </div>
-      `,
-        )
+        .map((e) => {
+          const preview = previewMap.get(e.path);
+          const label = preview
+            ? `<div class="thumb-label">${preview.class_key.replace(/_/g, " ")}<span class="thumb-conf">${(preview.confidence * 100).toFixed(0)}%</span></div>`
+            : "";
+          return `
+          <div class="thumb${preview ? " thumb--predicted" : ""}">
+            <img src="/api/thumbnail?path=${encodeURIComponent(e.path)}" loading="lazy" alt="${e.name}" />
+            ${label}
+            <div class="thumb-name">${e.name}</div>
+          </div>`;
+        })
         .join("");
     }
     setStatus(`${images.length} image(s) found.`);
@@ -191,7 +197,11 @@ categorizeBtn.addEventListener("click", async () => {
       }),
     });
     pendingPreview = result;
+    previewMap = new Map(
+      result.moves.map((m) => [m.from, { class_key: m.class_key, confidence: m.confidence }]),
+    );
     renderTree(result);
+    await loadThumbnails();
     previewPanel.hidden = false;
     previewCount.textContent = `${result.moves.length} file(s)`;
     setStatus("Review planned moves and confirm.");
@@ -262,6 +272,7 @@ confirmBtn.addEventListener("click", async () => {
         minConfidence: parseFloat(minConfInput.value),
       }),
     });
+    previewMap = new Map();
     renderSummary(result.summary);
     summaryPanel.hidden = false;
     await refreshSession();
@@ -278,6 +289,8 @@ confirmBtn.addEventListener("click", async () => {
 cancelBtn.addEventListener("click", () => {
   previewPanel.hidden = true;
   pendingPreview = null;
+  previewMap = new Map();
+  loadThumbnails();
   setStatus("Cancelled.");
 });
 
