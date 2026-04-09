@@ -132,7 +132,7 @@ async function loadThumbnails(): Promise<void> {
   setStatus("Loading files…", true);
   try {
     const { entries } = await apiFetch<{ entries: BrowseEntry[] }>(
-      `/api/browse?path=${encodeURIComponent(dir)}`,
+      `/api/browse?path=${encodeURIComponent(dir)}&recursive=1`,
     );
     const images = entries.filter((e) => e.isImage);
     if (images.length === 0) {
