@@ -331,3 +331,10 @@ async function refreshSession(): Promise<void> {
 }
 
 refreshSession();
+
+apiFetch<{ version: string }>("/api/version")
+  .then(({ version }) => {
+    const badge = el<HTMLElement>("version-badge");
+    badge.textContent = `v${version}`;
+  })
+  .catch(() => {});

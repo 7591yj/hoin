@@ -9,6 +9,7 @@ import { handleThumbnail } from "./handlers/thumbnail.ts";
 import { handleCategorizePreview, handleCategorizeApply } from "./handlers/categorize.ts";
 import { handleRevert } from "./handlers/revert.ts";
 import { handleSession } from "./handlers/session.ts";
+import { handleVersion } from "./handlers/version.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.resolve(__dirname, "../public");
@@ -27,6 +28,7 @@ router.on("POST", "/api/categorize/preview", handleCategorizePreview);
 router.on("POST", "/api/categorize/apply", handleCategorizeApply);
 router.on("POST", "/api/revert", handleRevert);
 router.on("GET", "/api/session", handleSession);
+router.on("GET", "/api/version", handleVersion);
 
 export async function handleRequest(req: Request): Promise<Response> {
   const url = new URL(req.url);

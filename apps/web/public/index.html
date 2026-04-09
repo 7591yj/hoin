@@ -4,13 +4,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>hoin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div id="app">
       <header>
         <h1>hoin</h1>
-        <span class="badge">image classifier</span>
+        <span class="badge" id="version-badge"></span>
       </header>
 
       <main>
@@ -30,13 +36,13 @@
                 <button id="scan-models-btn">Scan</button>
               </div>
             </div>
-            <div class="field" style="margin-top: 8px">
+            <div class="field" style="margin-top: 10px">
               <label>Selected model</label>
               <select id="model-select">
-                <option value="">— none —</option>
+                <option value="">- none -</option>
               </select>
             </div>
-            <div class="field" style="margin-top: 6px">
+            <div class="field" style="margin-top: 8px">
               <label>Or enter model dir directly</label>
               <input
                 id="model-dir-input"
@@ -76,7 +82,7 @@
                 step="0.05"
               />
             </div>
-            <div class="toggle-row" style="margin-top: 8px">
+            <div class="toggle-row" style="margin-top: 10px">
               <input type="checkbox" id="ja-toggle" />
               <label for="ja-toggle">Japanese character names</label>
             </div>
@@ -90,9 +96,9 @@
             <button
               id="revert-btn"
               class="danger"
-              style="width: 100%; margin-top: 8px; display: none"
+              style="width: 100%; margin-top: 10px; display: none"
             >
-              Revert last operation
+              Revert last
             </button>
           </section>
         </aside>
@@ -107,7 +113,9 @@
             </h2>
             <div class="tree" id="tree-root"></div>
             <div class="preview-actions">
-              <button id="confirm-btn" class="primary">Confirm & apply</button>
+              <button id="confirm-btn" class="primary">
+                Confirm &amp; apply
+              </button>
               <button id="cancel-btn">Cancel</button>
             </div>
           </div>
