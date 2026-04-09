@@ -332,9 +332,97 @@ async function refreshSession(): Promise<void> {
 
 refreshSession();
 
-apiFetch<{ version: string }>("/api/version")
-  .then(({ version }) => {
+let serverCwd = "/";
+
+apiFetch<{ version: string; cwd: string }>("/api/version")
+  .then(({ version, cwd }) => {
     const badge = el<HTMLElement>("version-badge");
     badge.textContent = `v${version}`;
+    serverCwd = cwd;
   })
   .catch(() => {});
+
+//  Directory picker
+const pickerOverlay = el<HTMLDivElement>("dir-picker-overlay");
+const pickerCwd = el<HTMLSpanElement>("dir-picker-cwd");
+const pickerList = el<HTMLUListElement>("dir-picker-list");
+const pickerUpBtn = el<HTMLButtonElement>("dir-picker-up");
+const pickerSelectBtn = el<HTMLButtonElement>("dir-picker-select");
+const pickerCancelBtn = el<HTMLButtonElement>("dir-picker-cancel");
+
+let pickerTargetInput: HTMLInputElement | null = null;
+let pickerCurrentDir = "/";
+let pickerSelectedDir: string | null = null;
+
+async function openPicker(targetInput: HTMLInputElement): Promise<void> {
+  pickerTargetInput = targetInput;
+  pickerSelectedDir = null;
+  const startDir = targetInput.value.trim() || serverCwd;
+  await pickerNavigate(startDir);
+  pickerOverlay.hidden = false;
+}
+
+async function pickerNavigate(dir: string): Promise<void> {
+  pickerCurrentDir = dir;
+  pickerSelectedDir = null;
+  pickerCwd.textContent = dir;
+  pickerList.innerHTML = "";
+
+  try {
+    const { entries } = await apiFetch<{ entries: BrowseEntry[] }>(
+      `/api/browse?path=${encodeURIComponent(dir)}`,
+    );
+    const dirs = entries.filter((e) => e.isDir);
+    if (dirs.length === 0) {
+      const li = document.createElement("li");
+      li.textContent = "No subdirectories";
+      li.style.color = "var(--muted)";
+      li.style.cursor = "default";
+      pickerList.appendChild(li);
+    } else {
+      for (const d of dirs) {
+        const li = document.createElement("li");
+        li.textContent = d.name;
+        li.dataset.path = d.path;
+        li.addEventListener("click", () => {
+          pickerList.querySelectorAll("li").forEach((el) => el.classList.remove("selected"));
+          li.classList.add("selected");
+          pickerSelectedDir = d.path;
+        });
+        li.addEventListener("dblclick", () => pickerNavigate(d.path));
+        pickerList.appendChild(li);
+      }
+    }
+  } catch {
+    pickerCwd.textContent = `${dir} (error reading directory)`;
+  }
+}
+
+pickerUpBtn.addEventListener("click", () => {
+  const parent = pickerCurrentDir.replace(/\/[^/]+\/?$/, "") || "/";
+  pickerNavigate(parent);
+});
+
+pickerSelectBtn.addEventListener("click", () => {
+  if (pickerTargetInput) {
+    pickerTargetInput.value = pickerSelectedDir ?? pickerCurrentDir;
+    pickerTargetInput.dispatchEvent(new Event("change"));
+  }
+  pickerOverlay.hidden = true;
+});
+
+pickerCancelBtn.addEventListener("click", () => {
+  pickerOverlay.hidden = true;
+});
+
+pickerOverlay.addEventListener("click", (e) => {
+  if (e.target === pickerOverlay) pickerOverlay.hidden = true;
+});
+
+document.querySelectorAll<HTMLButtonElement>(".icon-btn[data-pick]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const targetId = btn.dataset.pick!;
+    const input = el<HTMLInputElement>(targetId);
+    openPicker(input);
+  });
+});

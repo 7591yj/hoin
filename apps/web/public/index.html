@@ -27,12 +27,15 @@
             <div class="section-title">Model</div>
             <div class="field">
               <label>Models root directory</label>
-              <div class="input-row">
-                <input
-                  id="models-root"
-                  type="text"
-                  placeholder="/path/to/models"
-                />
+              <div style="display:flex;gap:6px;align-items:center">
+                <div class="input-row" style="flex:1">
+                  <input
+                    id="models-root"
+                    type="text"
+                    placeholder="/path/to/models"
+                  />
+                  <button class="icon-btn" data-pick="models-root" title="Browse">&#128193;</button>
+                </div>
                 <button id="scan-models-btn">Scan</button>
               </div>
             </div>
@@ -44,11 +47,14 @@
             </div>
             <div class="field" style="margin-top: 8px">
               <label>Or enter model dir directly</label>
-              <input
-                id="model-dir-input"
-                type="text"
-                placeholder="/path/to/model-dir"
-              />
+              <div class="input-row">
+                <input
+                  id="model-dir-input"
+                  type="text"
+                  placeholder="/path/to/model-dir"
+                />
+                <button class="icon-btn" data-pick="model-dir-input" title="Browse">&#128193;</button>
+              </div>
             </div>
             <div id="model-error" class="error-msg" hidden></div>
           </section>
@@ -63,6 +69,7 @@
                   type="text"
                   placeholder="/path/to/images"
                 />
+                <button class="icon-btn" data-pick="target-dir" title="Browse">&#128193;</button>
               </div>
               <div id="target-error" class="error-msg" hidden></div>
             </div>
@@ -136,6 +143,20 @@
       <div id="statusbar">
         <div class="spinner"></div>
         <span id="status-text">Ready</span>
+      </div>
+    </div>
+    <!-- Directory picker modal -->
+    <div id="dir-picker-overlay" hidden>
+      <div id="dir-picker">
+        <div id="dir-picker-header">
+          <button id="dir-picker-up" title="Parent directory">&#8593;</button>
+          <span id="dir-picker-cwd"></span>
+        </div>
+        <ul id="dir-picker-list"></ul>
+        <div id="dir-picker-actions">
+          <button id="dir-picker-select" class="primary">Select</button>
+          <button id="dir-picker-cancel">Cancel</button>
+        </div>
       </div>
     </div>
     <script src="app.js"></script>
