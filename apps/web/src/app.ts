@@ -44,6 +44,7 @@ let pendingPreview: CategorizeResult | null = null;
 // Map from absolute file path → { class_key, confidence } after dry-run
 let previewMap: Map<string, { class_key: string; confidence: number }> = new Map();
 let allowedRoots: string[] = [];
+let selectedFiles: Set<string> = new Set();
 
 //  DOM refs
 function el<T extends HTMLElement>(id: string): T {
@@ -96,6 +97,26 @@ function activeModelDir(): string {
   return modelDirInput.value.trim() || modelSelect.value || "";
 }
 
+function setSelectedFiles(paths: Iterable<string>): void {
+  selectedFiles = new Set(paths);
+  updateActionButtons();
+}
+
+function selectedPreviewMoves(): MoveEntry[] {
+  if (!pendingPreview) return [];
+  return pendingPreview.moves.filter((move) => selectedFiles.has(move.from));
+}
+
+function updateActionButtons(): void {
+  const selectedCount = selectedFiles.size;
+  categorizeBtn.textContent =
+    selectedCount === 0 ? "Categorize All" : `Categorize (${selectedCount})`;
+
+  const applyCount = selectedPreviewMoves().length;
+  confirmBtn.textContent = applyCount === 0 ? "Apply Selected" : `Apply Selected (${applyCount})`;
+  confirmBtn.disabled = pendingPreview !== null && applyCount === 0;
+}
+
 //  Model scanning
 scanModelsBtn.addEventListener("click", async () => {
   const root = modelsRootInput.value.trim();
@@ -132,6 +153,7 @@ targetDirInput.addEventListener("change", loadThumbnails);
 async function loadThumbnails(): Promise<void> {
   const dir = targetDirInput.value.trim();
   if (!dir) {
+    setSelectedFiles([]);
     thumbnailsEl.innerHTML = '<p class="empty-state">Select a target directory to see files.</p>';
     return;
   }
@@ -142,23 +164,44 @@ async function loadThumbnails(): Promise<void> {
       `/api/browse?path=${encodeURIComponent(dir)}&recursive=1`,
     );
     const images = entries.filter((e) => e.isImage);
+    const visiblePaths = new Set(images.map((entry) => entry.path));
+    setSelectedFiles([...selectedFiles].filter((file) => visiblePaths.has(file)));
     if (images.length === 0) {
       thumbnailsEl.innerHTML = '<p class="empty-state">No images found in this directory.</p>';
     } else {
-      thumbnailsEl.innerHTML = images
-        .map((e) => {
-          const preview = previewMap.get(e.path);
-          const label = preview
-            ? `<div class="thumb-label">${preview.class_key.replace(/_/g, " ")}<span class="thumb-conf">${(preview.confidence * 100).toFixed(0)}%</span></div>`
-            : "";
-          return `
-          <div class="thumb${preview ? " thumb--predicted" : ""}">
-            <img src="/api/thumbnail?path=${encodeURIComponent(e.path)}" loading="lazy" alt="${e.name}" />
-            ${label}
-            <div class="thumb-name">${e.name}</div>
-          </div>`;
-        })
-        .join("");
+      thumbnailsEl.innerHTML = "";
+      for (const entry of images) {
+        const preview = previewMap.get(entry.path);
+        if (pendingPreview && !preview) continue;
+        const thumb = document.createElement("button");
+        thumb.type = "button";
+        thumb.className = "thumb";
+        if (preview) thumb.classList.add("thumb--predicted");
+        if (selectedFiles.has(entry.path)) thumb.classList.add("thumb--selected");
+        thumb.dataset.path = entry.path;
+        thumb.innerHTML = `
+          <img src="/api/thumbnail?path=${encodeURIComponent(entry.path)}" loading="lazy" alt="${entry.name}" />
+          ${
+            preview
+              ? `<div class="thumb-label">${preview.class_key.replace(/_/g, " ")}<span class="thumb-conf">${(preview.confidence * 100).toFixed(0)}%</span></div>`
+              : ""
+          }
+          <div class="thumb-name">${entry.name}</div>
+        `;
+        thumb.addEventListener("click", () => {
+          const next = new Set(selectedFiles);
+          if (next.has(entry.path)) {
+            next.delete(entry.path);
+            thumb.classList.remove("thumb--selected");
+          } else {
+            next.add(entry.path);
+            thumb.classList.add("thumb--selected");
+          }
+          setSelectedFiles(next);
+          if (pendingPreview) updatePreviewPanel();
+        });
+        thumbnailsEl.appendChild(thumb);
+      }
     }
     setStatus(`${images.length} image(s) found.`);
   } catch (e) {
@@ -187,6 +230,8 @@ categorizeBtn.addEventListener("click", async () => {
   previewPanel.hidden = true;
   summaryPanel.hidden = true;
   pendingPreview = null;
+  previewMap = new Map();
+  updateActionButtons();
   setStatus("Running dry-run…", true);
   categorizeBtn.disabled = true;
 
@@ -199,16 +244,17 @@ categorizeBtn.addEventListener("click", async () => {
         targetDir,
         ja: jaToggle.checked,
         minConfidence: parseFloat(minConfInput.value),
+        selectedFiles: [...selectedFiles],
       }),
     });
     pendingPreview = result;
     previewMap = new Map(
       result.moves.map((m) => [m.from, { class_key: m.class_key, confidence: m.confidence }]),
     );
-    renderTree(result);
+    setSelectedFiles(result.moves.map((move) => move.from));
+    updatePreviewPanel();
     await loadThumbnails();
     previewPanel.hidden = false;
-    previewCount.textContent = `${result.moves.length} file(s)`;
     setStatus("Review planned moves and confirm.");
   } catch (e) {
     setStatus(`Error: ${(e as Error).message}`);
@@ -218,9 +264,9 @@ categorizeBtn.addEventListener("click", async () => {
 });
 
 //  Tree
-function renderTree(result: CategorizeResult): void {
+function renderTree(moves: MoveEntry[]): void {
   const tree: Record<string, MoveEntry[]> = {};
-  for (const move of result.moves) {
+  for (const move of moves) {
     const dir = dirname(move.to);
     if (!tree[dir]) tree[dir] = [];
     tree[dir].push(move);
@@ -256,6 +302,14 @@ function renderTree(result: CategorizeResult): void {
   });
 }
 
+function updatePreviewPanel(): void {
+  if (!pendingPreview) return;
+  const moves = selectedPreviewMoves();
+  renderTree(moves);
+  previewCount.textContent = `${moves.length} file(s) selected to move`;
+  updateActionButtons();
+}
+
 //  Confirm / Cancel
 confirmBtn.addEventListener("click", async () => {
   if (!pendingPreview) return;
@@ -275,8 +329,10 @@ confirmBtn.addEventListener("click", async () => {
         targetDir,
         ja: jaToggle.checked,
         minConfidence: parseFloat(minConfInput.value),
+        moves: selectedPreviewMoves(),
       }),
     });
+    pendingPreview = null;
     previewMap = new Map();
     renderSummary(result.summary);
     summaryPanel.hidden = false;
@@ -295,6 +351,7 @@ cancelBtn.addEventListener("click", () => {
   previewPanel.hidden = true;
   pendingPreview = null;
   previewMap = new Map();
+  updateActionButtons();
   loadThumbnails();
   setStatus("Cancelled.");
 });
@@ -492,3 +549,5 @@ document.querySelectorAll<HTMLButtonElement>(".icon-btn[data-pick]").forEach((bt
     openPicker(input);
   });
 });
+
+updateActionButtons();

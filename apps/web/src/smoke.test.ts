@@ -30,8 +30,10 @@ interface CategorizeResult {
 
 const repoRoot = path.resolve(import.meta.dir, "../../..");
 const smokeDir = path.join(repoRoot, ".tmp", "hoin-smoke");
-const sampleName = "sample.gif";
-const samplePath = path.join(smokeDir, sampleName);
+const sampleNameA = "sample-a.gif";
+const sampleNameB = "sample-b.gif";
+const samplePathA = path.join(smokeDir, sampleNameA);
+const samplePathB = path.join(smokeDir, sampleNameB);
 const forbiddenPath = "/tmp/hoin-forbidden.png";
 const modelsRoot = path.join(repoRoot, "models");
 const modelDir = path.join(modelsRoot, "holo-hoin");
@@ -73,32 +75,52 @@ test("web smoke test exercises CLI integration against /tmp/hoin-smoke", async (
     entries: Array<{ name: string; path: string; isDir: boolean; isImage: boolean }>;
   }>(`/api/browse?path=${encodeURIComponent(smokeDir)}`);
   expect(browse.entries).toContainEqual({
-    name: sampleName,
-    path: samplePath,
+    name: sampleNameA,
+    path: samplePathA,
+    isDir: false,
+    isImage: true,
+  });
+  expect(browse.entries).toContainEqual({
+    name: sampleNameB,
+    path: samplePathB,
     isDir: false,
     isImage: true,
   });
 
-  const thumbnail = await request(`/api/thumbnail?path=${encodeURIComponent(samplePath)}`);
+  const thumbnail = await request(`/api/thumbnail?path=${encodeURIComponent(samplePathA)}`);
   expect(thumbnail.status).toBe(200);
   expect(thumbnail.headers.get("content-type")).toBe("image/gif");
 
-  const preview = await postJson<CategorizeResult>("/api/categorize/preview", {
+  const previewAll = await postJson<CategorizeResult>("/api/categorize/preview", {
     modelDir,
     targetDir: smokeDir,
     minConfidence: 0,
   });
-  expect(preview.dry_run).toBe(true);
-  expect(preview.failed).toHaveLength(0);
-  expect(preview.summary.scanned).toBe(1);
-  expect(preview.moves).toHaveLength(1);
-  expect(preview.moves[0]?.from).toBe(samplePath);
-  expect(await pathExists(samplePath)).toBe(true);
+  expect(previewAll.dry_run).toBe(true);
+  expect(previewAll.failed).toHaveLength(0);
+  expect(previewAll.summary.scanned).toBe(2);
+  expect(previewAll.moves).toHaveLength(2);
+  expect(previewAll.moves.map((move) => move.from).sort()).toEqual([samplePathA, samplePathB]);
+  expect(await pathExists(samplePathA)).toBe(true);
+  expect(await pathExists(samplePathB)).toBe(true);
+
+  const previewSelected = await postJson<CategorizeResult>("/api/categorize/preview", {
+    modelDir,
+    targetDir: smokeDir,
+    minConfidence: 0,
+    selectedFiles: [samplePathA],
+  });
+  expect(previewSelected.dry_run).toBe(true);
+  expect(previewSelected.failed).toHaveLength(0);
+  expect(previewSelected.summary.scanned).toBe(1);
+  expect(previewSelected.moves).toHaveLength(1);
+  expect(previewSelected.moves[0]?.from).toBe(samplePathA);
 
   const apply = await postJson<CategorizeResult>("/api/categorize/apply", {
     modelDir,
     targetDir: smokeDir,
     minConfidence: 0,
+    moves: previewSelected.moves,
   });
   expect(apply.dry_run).toBe(false);
   expect(apply.failed).toHaveLength(0);
@@ -107,9 +129,10 @@ test("web smoke test exercises CLI integration against /tmp/hoin-smoke", async (
   if (!appliedMove) {
     throw new Error("expected categorize/apply to return one move");
   }
-  expect(appliedMove.from).toBe(samplePath);
-  expect(appliedMove.to).toBe(preview.moves[0]?.to);
-  expect(await pathExists(samplePath)).toBe(false);
+  expect(appliedMove.from).toBe(samplePathA);
+  expect(appliedMove.to).toBe(previewSelected.moves[0]?.to);
+  expect(await pathExists(samplePathA)).toBe(false);
+  expect(await pathExists(samplePathB)).toBe(true);
   expect(await pathExists(appliedMove.to)).toBe(true);
 
   const session = await getJson<{ hasLastOperation: boolean; moveCount: number }>("/api/session");
@@ -117,7 +140,8 @@ test("web smoke test exercises CLI integration against /tmp/hoin-smoke", async (
 
   const revert = await postJson<{ reverted: number }>("/api/revert");
   expect(revert).toEqual({ reverted: 1 });
-  expect(await pathExists(samplePath)).toBe(true);
+  expect(await pathExists(samplePathA)).toBe(true);
+  expect(await pathExists(samplePathB)).toBe(true);
   expect(await pathExists(appliedMove.to)).toBe(false);
 
   const clearedSession = await getJson<{ hasLastOperation: boolean; moveCount: number }>(
@@ -139,7 +163,8 @@ test("web API rejects paths outside allowed roots", async () => {
 async function resetSmokeDir(): Promise<void> {
   await rm(smokeDir, { recursive: true, force: true });
   await mkdir(smokeDir, { recursive: true });
-  await writeFile(samplePath, sampleGif);
+  await writeFile(samplePathA, sampleGif);
+  await writeFile(samplePathB, sampleGif);
 }
 
 async function getJson<T>(pathname: string): Promise<T> {

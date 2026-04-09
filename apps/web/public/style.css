@@ -278,6 +278,12 @@ input[type="checkbox"] {
   position: relative;
   box-shadow: var(--shadow-medium);
   transition: transform 0.15s, box-shadow 0.15s;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  appearance: none;
+  width: 100%;
+  text-align: left;
 }
 
 .thumb:hover {
@@ -310,6 +316,27 @@ input[type="checkbox"] {
 .thumb--predicted {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
+}
+
+.thumb--selected {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.thumb--selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 0 3px var(--accent);
+  pointer-events: none;
+}
+
+.thumb--selected img {
+  filter: saturate(1.05) brightness(0.78);
+}
+
+.thumb--selected:hover {
+  box-shadow: var(--shadow-heavy);
 }
 
 .thumb-label {

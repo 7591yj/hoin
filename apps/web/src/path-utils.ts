@@ -10,7 +10,10 @@ function parsePath(filePath: string): ParsedPath {
     return {
       root: windowsRoot,
       separator: "\\",
-      segments: filePath.slice(windowsRoot.length).split(/[\\/]+/).filter(Boolean),
+      segments: filePath
+        .slice(windowsRoot.length)
+        .split(/[\\/]+/)
+        .filter(Boolean),
     };
   }
 
@@ -18,7 +21,10 @@ function parsePath(filePath: string): ParsedPath {
   return {
     root: posixRoot,
     separator: "/",
-    segments: filePath.slice(posixRoot.length).split(/[\\/]+/).filter(Boolean),
+    segments: filePath
+      .slice(posixRoot.length)
+      .split(/[\\/]+/)
+      .filter(Boolean),
   };
 }
 
