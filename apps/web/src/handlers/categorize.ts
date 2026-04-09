@@ -142,14 +142,44 @@ export async function handleCategorizePreview(req: Request, _url: URL): Promise<
         return resolved;
       }),
     );
+    session.categorizeProgress = {
+      phase: "preview",
+      state: "running",
+      completed: 0,
+      total: selectedFiles.length > 0 ? selectedFiles.length : null,
+      message:
+        selectedFiles.length > 0
+          ? `Categorizing ${selectedFiles.length} selected image(s)…`
+          : "Categorizing images…",
+      startedAt: Date.now(),
+      updatedAt: Date.now(),
+    };
     const output = await runCategorize({ ...validated, modelDir, targetDir, dryRun: true });
     const filtered =
       selectedFiles.length === 0
         ? output
         : filterOutputBySelectedFiles(output, new Set(selectedFiles));
+    session.categorizeProgress = {
+      phase: "preview",
+      state: "done",
+      completed: filtered.summary.scanned,
+      total: filtered.summary.scanned,
+      message: `Prepared ${filtered.summary.moves} move(s) from ${filtered.summary.scanned} scanned image(s).`,
+      startedAt: session.categorizeProgress.startedAt,
+      updatedAt: Date.now(),
+    };
     return jsonResponse(200, filtered);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    session.categorizeProgress = {
+      phase: "preview",
+      state: "error",
+      completed: 0,
+      total: null,
+      message,
+      startedAt: session.categorizeProgress.startedAt,
+      updatedAt: Date.now(),
+    };
     const status = message.includes("outside allowed roots") ? 403 : 400;
     return jsonResponse(status, { error: message });
   }
@@ -164,6 +194,15 @@ export async function handleCategorizeApply(req: Request, _url: URL): Promise<Re
     const targetDir = await resolveAllowedPath(validated.targetDir);
     const appliedMoves: MoveEntry[] = [];
     const failed: Array<{ file: string; reason: string }> = [];
+    session.categorizeProgress = {
+      phase: "apply",
+      state: "running",
+      completed: 0,
+      total: validated.moves.length,
+      message: `Applying 0/${validated.moves.length} move(s)…`,
+      startedAt: Date.now(),
+      updatedAt: Date.now(),
+    };
 
     for (const move of validated.moves) {
       const from = await resolveAllowedPath(move.from);
@@ -192,6 +231,17 @@ export async function handleCategorizeApply(req: Request, _url: URL): Promise<Re
         const reason = error instanceof Error ? error.message : String(error);
         failed.push({ file: from, reason });
       }
+
+      const completed = appliedMoves.length + failed.length;
+      session.categorizeProgress = {
+        phase: "apply",
+        state: "running",
+        completed,
+        total: validated.moves.length,
+        message: `Applying ${completed}/${validated.moves.length} move(s)…`,
+        startedAt: session.categorizeProgress.startedAt,
+        updatedAt: Date.now(),
+      };
     }
 
     const output: CategorizeOutput = {
@@ -220,10 +270,28 @@ export async function handleCategorizeApply(req: Request, _url: URL): Promise<Re
             moves: appliedMoves,
             timestamp: Date.now(),
           };
+    session.categorizeProgress = {
+      phase: "apply",
+      state: "done",
+      completed: validated.moves.length,
+      total: validated.moves.length,
+      message: `Applied ${appliedMoves.length} move(s)${failed.length > 0 ? `, ${failed.length} failed` : ""}.`,
+      startedAt: session.categorizeProgress.startedAt,
+      updatedAt: Date.now(),
+    };
 
     return jsonResponse(200, output);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    session.categorizeProgress = {
+      phase: "apply",
+      state: "error",
+      completed: 0,
+      total: validated.moves.length,
+      message,
+      startedAt: session.categorizeProgress.startedAt,
+      updatedAt: Date.now(),
+    };
     const status = message.includes("outside allowed roots") ? 403 : 400;
     return jsonResponse(status, { error: message });
   }

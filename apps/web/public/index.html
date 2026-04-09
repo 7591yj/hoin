@@ -141,8 +141,23 @@
       </main>
 
       <div id="statusbar">
-        <div class="spinner"></div>
-        <span id="status-text">Ready</span>
+        <div class="status-main">
+          <div class="spinner"></div>
+          <span id="status-text">Ready</span>
+        </div>
+        <div id="status-progress" hidden>
+          <span id="status-progress-label"></span>
+          <div
+            id="status-progress-track"
+            class="status-progress-track"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          >
+            <div id="status-progress-fill" class="status-progress-fill"></div>
+          </div>
+        </div>
       </div>
     </div>
     <!-- Directory picker modal -->

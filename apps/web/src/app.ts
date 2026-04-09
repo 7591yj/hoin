@@ -37,6 +37,16 @@ interface ModelEntry {
   path: string;
 }
 
+interface CategorizeProgress {
+  phase: "preview" | "apply";
+  state: "idle" | "running" | "done" | "error";
+  completed: number;
+  total: number | null;
+  message: string;
+  startedAt: number | null;
+  updatedAt: number | null;
+}
+
 const PICKER_ROOTS_VIEW = "__allowed_roots__";
 
 //  State
@@ -45,6 +55,7 @@ let pendingPreview: CategorizeResult | null = null;
 let previewMap: Map<string, { class_key: string; confidence: number }> = new Map();
 let allowedRoots: string[] = [];
 let selectedFiles: Set<string> = new Set();
+let progressPollTimer: number | null = null;
 
 //  DOM refs
 function el<T extends HTMLElement>(id: string): T {
@@ -74,11 +85,69 @@ const summaryPanel = el<HTMLDivElement>("summary-panel");
 const summaryGrid = el<HTMLDivElement>("summary-grid");
 const statusBar = el<HTMLDivElement>("statusbar");
 const statusText = el<HTMLSpanElement>("status-text");
+const statusProgress = el<HTMLDivElement>("status-progress");
+const statusProgressLabel = el<HTMLSpanElement>("status-progress-label");
+const statusProgressTrack = el<HTMLDivElement>("status-progress-track");
+const statusProgressFill = el<HTMLDivElement>("status-progress-fill");
 
 //  Helpers
 function setStatus(msg: string, loading = false): void {
   statusText.textContent = msg;
   statusBar.classList.toggle("loading", loading);
+}
+
+function renderBottomProgress(progress: CategorizeProgress | null): void {
+  if (!progress || progress.state === "idle") {
+    statusProgress.hidden = true;
+    statusProgressLabel.textContent = "";
+    statusProgressTrack.classList.remove("indeterminate");
+    statusProgressTrack.setAttribute("aria-valuenow", "0");
+    statusProgressFill.style.width = "0%";
+    return;
+  }
+
+  statusProgress.hidden = false;
+  const hasTotal = typeof progress.total === "number" && progress.total > 0;
+  const percent = hasTotal ? Math.min(100, (progress.completed / progress.total) * 100) : 0;
+
+  statusProgressLabel.textContent = hasTotal
+    ? `${progress.phase === "preview" ? "Preview" : "Apply"} ${progress.completed}/${progress.total}`
+    : progress.phase === "preview"
+      ? "Preview in progress"
+      : "Apply in progress";
+  statusProgressTrack.classList.toggle("indeterminate", !hasTotal && progress.state === "running");
+  statusProgressTrack.setAttribute("aria-valuenow", hasTotal ? String(Math.round(percent)) : "0");
+  statusProgressFill.style.width = hasTotal ? `${percent}%` : "0%";
+}
+
+async function pollCategorizeProgress(stopWhenSettled = false): Promise<void> {
+  try {
+    const progress = await apiFetch<CategorizeProgress>("/api/categorize/progress");
+    renderBottomProgress(progress);
+    if (progress.state === "running") {
+      setStatus(progress.message, true);
+    }
+    if (stopWhenSettled && (progress.state === "done" || progress.state === "error")) {
+      stopProgressPolling();
+    }
+  } catch {
+    // ignore polling failures
+  }
+}
+
+function stopProgressPolling(): void {
+  if (progressPollTimer !== null) {
+    window.clearInterval(progressPollTimer);
+    progressPollTimer = null;
+  }
+}
+
+function startProgressPolling(): void {
+  stopProgressPolling();
+  void pollCategorizeProgress();
+  progressPollTimer = window.setInterval(() => {
+    void pollCategorizeProgress(true);
+  }, 300);
 }
 
 function showError(el: HTMLElement, msg: string): void {
@@ -233,6 +302,19 @@ categorizeBtn.addEventListener("click", async () => {
   previewMap = new Map();
   updateActionButtons();
   setStatus("Running dry-run…", true);
+  renderBottomProgress({
+    phase: "preview",
+    state: "running",
+    completed: 0,
+    total: selectedFiles.size > 0 ? selectedFiles.size : null,
+    message:
+      selectedFiles.size > 0
+        ? `Categorizing ${selectedFiles.size} selected image(s)…`
+        : "Categorizing images…",
+    startedAt: Date.now(),
+    updatedAt: Date.now(),
+  });
+  startProgressPolling();
   categorizeBtn.disabled = true;
 
   try {
@@ -259,6 +341,7 @@ categorizeBtn.addEventListener("click", async () => {
   } catch (e) {
     setStatus(`Error: ${(e as Error).message}`);
   } finally {
+    await pollCategorizeProgress(true);
     categorizeBtn.disabled = false;
   }
 });
@@ -318,6 +401,16 @@ confirmBtn.addEventListener("click", async () => {
 
   previewPanel.hidden = true;
   setStatus("Applying…", true);
+  renderBottomProgress({
+    phase: "apply",
+    state: "running",
+    completed: 0,
+    total: selectedPreviewMoves().length,
+    message: `Applying 0/${selectedPreviewMoves().length} move(s)…`,
+    startedAt: Date.now(),
+    updatedAt: Date.now(),
+  });
+  startProgressPolling();
   confirmBtn.disabled = true;
 
   try {
@@ -343,6 +436,7 @@ confirmBtn.addEventListener("click", async () => {
     setStatus(`Error: ${(e as Error).message}`);
     previewPanel.hidden = false;
   } finally {
+    await pollCategorizeProgress(true);
     confirmBtn.disabled = false;
   }
 });
@@ -406,6 +500,7 @@ async function refreshSession(): Promise<void> {
 }
 
 refreshSession();
+void pollCategorizeProgress(true);
 
 let serverCwd = "/";
 

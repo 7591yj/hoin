@@ -506,6 +506,7 @@ input[type="checkbox"] {
   color: var(--muted);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
 }
 
@@ -524,9 +525,65 @@ input[type="checkbox"] {
   display: block;
 }
 
+.status-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+#status-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+}
+
+#status-progress[hidden] {
+  display: none;
+}
+
+#status-progress-label {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.status-progress-track {
+  width: 180px;
+  height: 6px;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  position: relative;
+}
+
+.status-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), #79b6ff);
+  border-radius: inherit;
+  transition: width 0.18s ease;
+}
+
+.status-progress-track.indeterminate .status-progress-fill {
+  width: 35%;
+  position: absolute;
+  animation: indeterminate-progress 1.2s ease-in-out infinite;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes indeterminate-progress {
+  0% {
+    left: -35%;
+  }
+  100% {
+    left: 100%;
   }
 }
 

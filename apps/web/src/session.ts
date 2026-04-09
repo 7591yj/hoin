@@ -10,6 +10,28 @@ interface LastOperation {
   timestamp: number;
 }
 
-export const session: { lastOperation: LastOperation | null } = {
+export interface CategorizeProgress {
+  phase: "preview" | "apply";
+  state: "idle" | "running" | "done" | "error";
+  completed: number;
+  total: number | null;
+  message: string;
+  startedAt: number | null;
+  updatedAt: number | null;
+}
+
+export const session: {
+  lastOperation: LastOperation | null;
+  categorizeProgress: CategorizeProgress;
+} = {
   lastOperation: null,
+  categorizeProgress: {
+    phase: "preview",
+    state: "idle",
+    completed: 0,
+    total: null,
+    message: "Ready",
+    startedAt: null,
+    updatedAt: null,
+  },
 };
