@@ -537,6 +537,38 @@ input[type="checkbox"] {
   padding: 0 4px;
 }
 
+/* Model dir details/summary disclosure */
+.model-dir-details summary {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.model-dir-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.model-dir-details summary::before {
+  content: "▶";
+  font-size: 8px;
+  opacity: 0.6;
+  transition: transform 0.15s;
+}
+
+.model-dir-details[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.model-dir-details summary:hover {
+  color: var(--text);
+}
+
 /* Sidebar section separators */
 #sidebar section {
   display: flex;

@@ -45,9 +45,9 @@
                 <option value="">- none -</option>
               </select>
             </div>
-            <div class="field" style="margin-top: 8px">
-              <label>Or enter model dir directly</label>
-              <div class="input-row">
+            <details class="model-dir-details" style="margin-top: 8px">
+              <summary>Or enter model dir directly</summary>
+              <div class="input-row" style="margin-top: 6px">
                 <input
                   id="model-dir-input"
                   type="text"
@@ -55,7 +55,7 @@
                 />
                 <button class="icon-btn" data-pick="model-dir-input" title="Browse">&#128193;</button>
               </div>
-            </div>
+            </details>
             <div id="model-error" class="error-msg" hidden></div>
           </section>
 
