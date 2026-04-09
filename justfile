@@ -15,6 +15,10 @@ lint fix="":
 
 test:
   cargo test --workspace
+  just smoke-web
+
+smoke-web:
+  cd apps/web && bun test
 
 check:
   cargo check --workspace

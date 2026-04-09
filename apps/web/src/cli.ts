@@ -7,12 +7,18 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 async function resolveBin(): Promise<string> {
   if (process.env.HOIN_BIN) return process.env.HOIN_BIN;
 
-  const relPath = path.resolve(__dirname, "../../..", "target/release/hoin");
-  try {
-    await access(relPath);
-    return relPath;
-  } catch {
-    // fall through to PATH
+  const candidates = [
+    path.resolve(__dirname, "../../..", "target/debug/hoin"),
+    path.resolve(__dirname, "../../..", "target/release/hoin"),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      await access(candidate);
+      return candidate;
+    } catch {
+      // Try the next candidate.
+    }
   }
 
   return "hoin";
