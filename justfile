@@ -18,6 +18,7 @@ test:
   just smoke-web
 
 smoke-web:
+  cargo build -p hoin-cli
   cd apps/web && bun test
 
 check:
