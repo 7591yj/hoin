@@ -1,4 +1,5 @@
 import { runCategorize } from "../cli.ts";
+import { resolveAllowedPath } from "../allowed-paths.ts";
 import { session } from "../session.ts";
 import { jsonResponse } from "../router.ts";
 
@@ -35,8 +36,16 @@ export async function handleCategorizePreview(req: Request, _url: URL): Promise<
   const validated = validateBody(body);
   if ("error" in validated) return jsonResponse(400, validated);
 
-  const output = await runCategorize({ ...validated, dryRun: true });
-  return jsonResponse(200, output);
+  try {
+    const modelDir = await resolveAllowedPath(validated.modelDir);
+    const targetDir = await resolveAllowedPath(validated.targetDir);
+    const output = await runCategorize({ ...validated, modelDir, targetDir, dryRun: true });
+    return jsonResponse(200, output);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const status = message.includes("outside allowed roots") ? 403 : 400;
+    return jsonResponse(status, { error: message });
+  }
 }
 
 export async function handleCategorizeApply(req: Request, _url: URL): Promise<Response> {
@@ -44,12 +53,20 @@ export async function handleCategorizeApply(req: Request, _url: URL): Promise<Re
   const validated = validateBody(body);
   if ("error" in validated) return jsonResponse(400, validated);
 
-  const output = await runCategorize({ ...validated, dryRun: false });
+  try {
+    const modelDir = await resolveAllowedPath(validated.modelDir);
+    const targetDir = await resolveAllowedPath(validated.targetDir);
+    const output = await runCategorize({ ...validated, modelDir, targetDir, dryRun: false });
 
-  session.lastOperation = {
-    moves: output.moves,
-    timestamp: Date.now(),
-  };
+    session.lastOperation = {
+      moves: output.moves,
+      timestamp: Date.now(),
+    };
 
-  return jsonResponse(200, output);
+    return jsonResponse(200, output);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const status = message.includes("outside allowed roots") ? 403 : 400;
+    return jsonResponse(status, { error: message });
+  }
 }

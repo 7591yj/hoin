@@ -29,9 +29,10 @@ interface CategorizeResult {
 }
 
 const repoRoot = path.resolve(import.meta.dir, "../../..");
-const smokeDir = "/tmp/hoin-smoke";
+const smokeDir = path.join(repoRoot, ".tmp", "hoin-smoke");
 const sampleName = "sample.gif";
 const samplePath = path.join(smokeDir, sampleName);
+const forbiddenPath = "/tmp/hoin-forbidden.png";
 const modelsRoot = path.join(repoRoot, "models");
 const modelDir = path.join(modelsRoot, "holo-hoin");
 const hoinBin = path.join(repoRoot, "target/debug/hoin");
@@ -45,6 +46,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await rm(smokeDir, { recursive: true, force: true });
+  await rm(forbiddenPath, { force: true });
   if (previousHoinBin === undefined) {
     delete process.env.HOIN_BIN;
   } else {
@@ -122,6 +124,16 @@ test("web smoke test exercises CLI integration against /tmp/hoin-smoke", async (
     "/api/session",
   );
   expect(clearedSession).toEqual({ hasLastOperation: false, moveCount: 0 });
+});
+
+test("web API rejects paths outside allowed roots", async () => {
+  await writeFile(forbiddenPath, sampleGif);
+
+  const browse = await request("/api/browse?path=%2Ftmp");
+  expect(browse.status).toBe(403);
+
+  const thumbnail = await request(`/api/thumbnail?path=${encodeURIComponent(forbiddenPath)}`);
+  expect(thumbnail.status).toBe(403);
 });
 
 async function resetSmokeDir(): Promise<void> {

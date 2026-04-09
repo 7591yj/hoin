@@ -37,10 +37,13 @@ interface ModelEntry {
   path: string;
 }
 
+const PICKER_ROOTS_VIEW = "__allowed_roots__";
+
 //  State
 let pendingPreview: CategorizeResult | null = null;
 // Map from absolute file path → { class_key, confidence } after dry-run
 let previewMap: Map<string, { class_key: string; confidence: number }> = new Map();
+let allowedRoots: string[] = [];
 
 //  DOM refs
 function el<T extends HTMLElement>(id: string): T {
@@ -349,11 +352,12 @@ refreshSession();
 
 let serverCwd = "/";
 
-apiFetch<{ version: string; cwd: string }>("/api/version")
-  .then(({ version, cwd }) => {
+apiFetch<{ version: string; cwd: string; allowedRoots: string[] }>("/api/version")
+  .then(({ version, cwd, allowedRoots: roots }) => {
     const badge = el<HTMLElement>("version-badge");
     badge.textContent = `v${version}`;
     serverCwd = cwd;
+    allowedRoots = roots;
   })
   .catch(() => {});
 
@@ -366,18 +370,55 @@ const pickerSelectBtn = el<HTMLButtonElement>("dir-picker-select");
 const pickerCancelBtn = el<HTMLButtonElement>("dir-picker-cancel");
 
 let pickerTargetInput: HTMLInputElement | null = null;
-let pickerCurrentDir = "/";
+let pickerCurrentDir = PICKER_ROOTS_VIEW;
 let pickerSelectedDir: string | null = null;
+
+function isWithinAllowedRoot(dir: string): boolean {
+  return allowedRoots.some(
+    (root) => dir === root || dir.startsWith(`${root}/`) || dir.startsWith(`${root}\\`),
+  );
+}
+
+function renderAllowedRoots(): void {
+  pickerCurrentDir = PICKER_ROOTS_VIEW;
+  pickerSelectedDir = null;
+  pickerCwd.textContent = "Allowed locations";
+  pickerList.innerHTML = "";
+
+  for (const root of allowedRoots) {
+    const li = document.createElement("li");
+    li.textContent = root;
+    li.dataset.path = root;
+    li.addEventListener("click", () => {
+      pickerList.querySelectorAll("li").forEach((el) => {
+        el.classList.remove("selected");
+      });
+      li.classList.add("selected");
+      pickerSelectedDir = root;
+    });
+    li.addEventListener("dblclick", () => pickerNavigate(root));
+    pickerList.appendChild(li);
+  }
+}
 
 async function openPicker(targetInput: HTMLInputElement): Promise<void> {
   pickerTargetInput = targetInput;
   pickerSelectedDir = null;
   const startDir = targetInput.value.trim() || serverCwd;
-  await pickerNavigate(startDir);
+  if (isWithinAllowedRoot(startDir)) {
+    await pickerNavigate(startDir);
+  } else {
+    renderAllowedRoots();
+  }
   pickerOverlay.hidden = false;
 }
 
 async function pickerNavigate(dir: string): Promise<void> {
+  if (!isWithinAllowedRoot(dir)) {
+    renderAllowedRoots();
+    return;
+  }
+
   pickerCurrentDir = dir;
   pickerSelectedDir = null;
   pickerCwd.textContent = dir;
@@ -416,7 +457,14 @@ async function pickerNavigate(dir: string): Promise<void> {
 }
 
 pickerUpBtn.addEventListener("click", () => {
+  if (pickerCurrentDir === PICKER_ROOTS_VIEW) return;
+
   const parent = parentDir(pickerCurrentDir);
+  if (allowedRoots.includes(pickerCurrentDir) || !isWithinAllowedRoot(parent)) {
+    renderAllowedRoots();
+    return;
+  }
+
   pickerNavigate(parent);
 });
 
