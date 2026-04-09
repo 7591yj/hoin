@@ -1,37 +1,35 @@
 [project]
 name = "holo-hoin"
 version = "0.1.0"
-description = "Swin Transformer-Tiny 기반 홀로라이브 캐릭터 분류기"
+description = "Hololive Talent inference using Swin Transformer-Tiny"
 requires-python = ">=3.11,<3.15"
 dependencies = [
-    # 크롤러
+    # Crawling
     "requests>=2.31.0",
     "tqdm>=4.66.0",
     "pillow>=10.0.0",
     "rich>=13.7.0",
     "python-dotenv>=1.0.0",
-    # 학습
+    # Training
     "torch>=2.1.0",
     "torchvision>=0.16.0",
     "triton-rocm==3.6.0 ; sys_platform == 'linux'",
     "timm>=0.9.12",
     "albumentations>=1.3.1",
     "numpy>=1.24.0",
-    # 추론 엔진 (CPU EP 기본 포함)
+    # Inference engine with the CPU execution provider included by default
     "onnxruntime>=1.17.0",
     "onnxscript>=0.6.2",
 ]
 
 [project.optional-dependencies]
 logging = ["wandb>=0.16.0"]
-# Intel Arc GPU 학습 지원 (3.14 is not supported, IPEX wheel nonexistent)
-# 설치: uv sync --extra arc
+# Intel Arc training support; Python 3.14 is excluded because IPEX wheels are not published for it.
 arc = [
     "intel-extension-for-pytorch>=2.3.0 ; python_version < '3.14'",
     "oneccl-bind-pt>=2.3.0 ; python_version < '3.14'",
 ]
-# ROCm GPU ONNX test: onnxruntime 대신 onnxruntime-rocm 설치
-# pip install onnxruntime-rocm  (onnxruntime과 충돌하므로 단독 사용)
+# Use `onnxruntime-rocm` manually for ROCm ONNX validation; it conflicts with `onnxruntime`.
 
 [tool.uv.sources]
 torch = [
@@ -41,7 +39,7 @@ torchvision = [
     { index = "pytorch-rocm", marker = "sys_platform == 'linux'" },
 ]
 triton-rocm = { index = "pytorch-rocm" }
-# Intel Arc XPU 전용 패키지
+# Intel Arc XPU packages resolve from the dedicated IPEX index.
 intel-extension-for-pytorch = { index = "pytorch-ipex" }
 oneccl-bind-pt = { index = "pytorch-ipex" }
 
