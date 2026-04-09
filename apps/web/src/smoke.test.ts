@@ -97,10 +97,14 @@ test("web smoke test exercises CLI integration against /tmp/hoin-smoke", async (
   expect(apply.dry_run).toBe(false);
   expect(apply.failed).toHaveLength(0);
   expect(apply.moves).toHaveLength(1);
-  expect(apply.moves[0]?.from).toBe(samplePath);
-  expect(apply.moves[0]?.to).toBe(preview.moves[0]?.to);
+  const appliedMove = apply.moves[0];
+  if (!appliedMove) {
+    throw new Error("expected categorize/apply to return one move");
+  }
+  expect(appliedMove.from).toBe(samplePath);
+  expect(appliedMove.to).toBe(preview.moves[0]?.to);
   expect(await pathExists(samplePath)).toBe(false);
-  expect(await pathExists(apply.moves[0]!.to)).toBe(true);
+  expect(await pathExists(appliedMove.to)).toBe(true);
 
   const session = await getJson<{ hasLastOperation: boolean; moveCount: number }>("/api/session");
   expect(session).toEqual({ hasLastOperation: true, moveCount: 1 });
@@ -108,7 +112,7 @@ test("web smoke test exercises CLI integration against /tmp/hoin-smoke", async (
   const revert = await postJson<{ reverted: number }>("/api/revert");
   expect(revert).toEqual({ reverted: 1 });
   expect(await pathExists(samplePath)).toBe(true);
-  expect(await pathExists(apply.moves[0]!.to)).toBe(false);
+  expect(await pathExists(appliedMove.to)).toBe(false);
 
   const clearedSession = await getJson<{ hasLastOperation: boolean; moveCount: number }>(
     "/api/session",
