@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { access, mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { handleRequest } from "./web.ts";
+import { workspaceVersion } from "./version.ts";
 
 interface MoveEntry {
   from: string;
@@ -57,6 +58,9 @@ test("web smoke test exercises CLI integration against /tmp/hoin-smoke", async (
   const home = await request("/");
   expect(home.status).toBe(200);
   expect(await home.text()).toContain("<title>hoin</title>");
+
+  const version = await getJson<{ version: string }>("/api/version");
+  expect(version.version).toBe(workspaceVersion);
 
   const models = await getJson<{ models: Array<{ name: string; path: string }> }>(
     `/api/models?root=${encodeURIComponent(modelsRoot)}`,

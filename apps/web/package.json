@@ -1,6 +1,5 @@
 {
   "name": "hoin-web",
-  "version": "0.1.0",
   "description": "Web UI for hoin",
   "scripts": {
     "build:frontend": "bun build src/app.ts --outdir public --target browser --minify",
