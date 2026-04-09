@@ -1,3 +1,5 @@
+import { dirname, basename, parentDir } from "./path-utils.ts";
+
 //  Types
 interface MoveEntry {
   from: string;
@@ -216,7 +218,7 @@ categorizeBtn.addEventListener("click", async () => {
 function renderTree(result: CategorizeResult): void {
   const tree: Record<string, MoveEntry[]> = {};
   for (const move of result.moves) {
-    const dir = move.to.substring(0, move.to.lastIndexOf("/"));
+    const dir = dirname(move.to);
     if (!tree[dir]) tree[dir] = [];
     tree[dir].push(move);
   }
@@ -232,7 +234,7 @@ function renderTree(result: CategorizeResult): void {
       const files = tree[dir];
       const filesHtml = files
         .map((m) => {
-          const name = m.from.substring(m.from.lastIndexOf("/") + 1);
+          const name = basename(m.from);
           return `<div class="tree-file"><span>${name}</span><span class="conf">${(m.confidence * 100).toFixed(0)}%</span></div>`;
         })
         .join("");
@@ -414,7 +416,7 @@ async function pickerNavigate(dir: string): Promise<void> {
 }
 
 pickerUpBtn.addEventListener("click", () => {
-  const parent = pickerCurrentDir.replace(/\/[^/]+\/?$/, "") || "/";
+  const parent = parentDir(pickerCurrentDir);
   pickerNavigate(parent);
 });
 
