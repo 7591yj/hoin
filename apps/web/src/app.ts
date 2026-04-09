@@ -398,7 +398,9 @@ async function pickerNavigate(dir: string): Promise<void> {
         li.textContent = d.name;
         li.dataset.path = d.path;
         li.addEventListener("click", () => {
-          pickerList.querySelectorAll("li").forEach((el) => el.classList.remove("selected"));
+          pickerList.querySelectorAll("li").forEach((el) => {
+            el.classList.remove("selected");
+          });
           li.classList.add("selected");
           pickerSelectedDir = d.path;
         });
@@ -434,7 +436,8 @@ pickerOverlay.addEventListener("click", (e) => {
 
 document.querySelectorAll<HTMLButtonElement>(".icon-btn[data-pick]").forEach((btn) => {
   btn.addEventListener("click", () => {
-    const targetId = btn.dataset.pick!;
+    const targetId = btn.dataset.pick;
+    if (!targetId) return;
     const input = el<HTMLInputElement>(targetId);
     openPicker(input);
   });
