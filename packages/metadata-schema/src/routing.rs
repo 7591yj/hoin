@@ -31,7 +31,7 @@ impl fmt::Display for RoutingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "no routing strategy is registered for embedded model '{}'",
+            "no routing strategy is registered for model '{}'",
             self.model_name
         )
     }
@@ -112,7 +112,7 @@ mod tests {
 
         assert_eq!(
             error.to_string(),
-            "no routing strategy is registered for embedded model 'unknown-model'"
+            "no routing strategy is registered for model 'unknown-model'"
         );
     }
 

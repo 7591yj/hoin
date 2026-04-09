@@ -1,8 +1,8 @@
 mod categorize;
 mod cli;
-mod embedded_model;
 mod help;
 mod model;
+mod model_package;
 
 use std::path::PathBuf;
 
@@ -12,8 +12,8 @@ use clap::Parser;
 use crate::{
     categorize::categorize,
     cli::{CategorizeArgs, Cli, Command},
-    embedded_model::{extract_model, print_model_info},
     help::print_help_overview,
+    model_package::print_model_info,
 };
 
 fn main() -> Result<()> {
@@ -22,9 +22,9 @@ fn main() -> Result<()> {
     match cli.command {
         Some(Command::Categorize(args)) => categorize(args),
         Some(Command::Help) => print_help_overview(),
-        Some(Command::ModelInfo) => print_model_info(),
-        Some(Command::ExtractModel { output_dir }) => extract_model(&output_dir),
+        Some(Command::ModelInfo { model_dir }) => print_model_info(model_dir.as_deref()),
         None => categorize(CategorizeArgs {
+            model_dir: None,
             path: PathBuf::from("."),
             dry_run: false,
             ja: false,
