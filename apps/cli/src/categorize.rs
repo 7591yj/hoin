@@ -189,8 +189,7 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
                 if source == destination {
                     summary.already_categorized += 1;
                     if args.json {
-                        json_already_categorized
-                            .push(AlreadyCategorizedEntry { file: source });
+                        json_already_categorized.push(AlreadyCategorizedEntry { file: source });
                     } else {
                         println!("ok: already categorized {}", source.display());
                     }
