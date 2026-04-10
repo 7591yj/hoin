@@ -1,19 +1,19 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
 import { stat } from "node:fs/promises";
-import { Router } from "./router.ts";
-import { handleModels } from "./handlers/models.ts";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { handleBrowse } from "./handlers/browse.ts";
-import { handleThumbnail } from "./handlers/thumbnail.ts";
-import { handleCategorizePreview, handleCategorizeApply } from "./handlers/categorize.ts";
+import { handleCategorizeApply, handleCategorizePreview } from "./handlers/categorize.ts";
 import { handleCategorizeProgress } from "./handlers/categorize-progress.ts";
+import { handleModels } from "./handlers/models.ts";
 import { handleRevert } from "./handlers/revert.ts";
 import { handleSession } from "./handlers/session.ts";
+import { handleThumbnail } from "./handlers/thumbnail.ts";
 import { handleVersion } from "./handlers/version.ts";
+import { Router } from "./router.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PUBLIC_DIR = path.resolve(__dirname, "../public");
+const PUBLIC_DIR = resolvePublicDir();
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -32,6 +32,26 @@ router.on("POST", "/api/revert", handleRevert);
 router.on("GET", "/api/session", handleSession);
 router.on("GET", "/api/version", handleVersion);
 
+function resolvePublicDir(): string {
+  if (process.env.HOIN_PUBLIC_DIR) return path.resolve(process.env.HOIN_PUBLIC_DIR);
+
+  const candidates = [
+    path.resolve(process.cwd(), "public"),
+    path.resolve(__dirname, "../public"),
+    path.resolve(path.dirname(process.execPath), "public"),
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate;
+  }
+
+  return candidates[0];
+}
+
+function isWithinDir(candidate: string, root: string): boolean {
+  const relative = path.relative(root, candidate);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
 export async function handleRequest(req: Request): Promise<Response> {
   const url = new URL(req.url);
 
@@ -40,7 +60,7 @@ export async function handleRequest(req: Request): Promise<Response> {
   }
 
   let filePath = path.join(PUBLIC_DIR, url.pathname === "/" ? "index.html" : url.pathname);
-  if (!filePath.startsWith(PUBLIC_DIR)) {
+  if (!isWithinDir(filePath, PUBLIC_DIR)) {
     return new Response("Forbidden", { status: 403 });
   }
 

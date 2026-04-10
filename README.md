@@ -90,8 +90,14 @@ paths.
 
 ## Releases
 
-Releases publish CLI archives per OS/architecture target and model archives per
-model. The CLI is built once per OS target and can run any compatible model package.
+Releases publish CLI archives, web UI archives, and model archives. The CLI and
+web UI are built per OS/architecture target. Model archives are OS-independent
+and can be used by any compatible CLI or web UI package.
+
+CLI archives contain only the native `hoin` executable and release instructions.
+Web UI archives contain a native `hoin-web` executable, the matching `hoin`
+executable, browser assets, and release instructions. Model archives contain one
+model package under `models/<name>/`.
 
 If the repository contains:
 
@@ -100,8 +106,11 @@ If the repository contains:
 - `models/c/`
 
 then, the release automation will produce one model archive for `a`, one for `b`,
-and one for `c`, plus the OS-specific CLI archives.
+and one for `c`, plus OS-specific CLI and web UI archives.
 
 For example, `models/test/build.sh` must produce
 `models/test/test.onnx`, and the release model package will include
 `models/test/test.onnx` plus a generated `models/test/hoin-model.json` manifest.
+
+For both CLI and web UI release packages, download one or more model archives and
+move or copy the extracted `models/` directory next to the release executable.

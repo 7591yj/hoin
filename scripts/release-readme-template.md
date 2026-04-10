@@ -5,9 +5,22 @@ separate release archives.
 
 ## Quick Start
 
-1. Open a terminal in this directory.
-2. Download and extract a `hoin-*-model-*.tar.gz` archive.
-3. Run the executable with `--model-dir` pointing at the extracted model package.
+1. Download and extract one or more `hoin-*-model-*.tar.gz` archives.
+2. Move or copy the extracted `models/` directory next to this executable.
+3. Open a terminal in this directory.
+4. Run the executable with `--model-dir ./models/<model-name>`.
+
+After setup, the directory should look like:
+
+```text
+.
+├── @@BINARY_FILE@@
+├── README.md
+└── models/
+    └── holo-hoin/
+        ├── holo-hoin.onnx
+        └── hoin-model.json
+```
 
 ## Common Commands
 

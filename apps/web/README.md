@@ -28,8 +28,11 @@ Web UI for [hoin-cli](../cli/README.md).
   determinate and updates per processed move.
 - The web package shells out to the `hoin` binary through `src/cli.ts`.
 - If `HOIN_BIN` is set, that binary path is used.
+- Release packages prefer a `hoin` or `hoin.exe` executable next to `hoin-web`.
 - Otherwise it prefers `target/debug/hoin`, then `target/release/hoin`, then
   falls back to `hoin` on `PATH`.
+- Release packages read static browser assets from `./public` next to `hoin-web`.
+- Set `HOIN_PUBLIC_DIR` to use a different static asset directory.
 
 ## Restrictions
 

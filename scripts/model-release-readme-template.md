@@ -4,9 +4,22 @@ This archive contains the `@@MODEL_NAME@@` model package for `hoin`.
 
 ## Quick Start
 
-1. Extract this archive next to a `hoin` CLI release archive.
-2. Open a terminal in the CLI directory.
-3. Point the CLI at this model package with `--model-dir`.
+1. Extract this archive.
+2. Move or copy the extracted `models/` directory next to a `hoin` CLI executable.
+3. Open a terminal in the CLI directory.
+4. Point the CLI at this model package with `--model-dir ./models/@@MODEL_NAME@@`.
+
+After setup, the CLI directory should look like:
+
+```text
+.
+├── hoin
+├── README.md
+└── models/
+    └── @@MODEL_NAME@@/
+        ├── @@MODEL_NAME@@.onnx
+        └── hoin-model.json
+```
 
 ## Common Commands
 
