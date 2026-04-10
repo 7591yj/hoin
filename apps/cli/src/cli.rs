@@ -38,4 +38,6 @@ pub(crate) struct CategorizeArgs {
     pub(crate) ja: bool,
     #[arg(long, default_value_t = DEFAULT_MIN_CONFIDENCE)]
     pub(crate) min_confidence: f32,
+    #[arg(long, help = "Output results as JSON instead of human-readable text")]
+    pub(crate) json: bool,
 }

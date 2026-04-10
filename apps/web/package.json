@@ -1,0 +1,13 @@
+{
+  "name": "hoin-web",
+  "description": "Web UI for hoin",
+  "scripts": {
+    "build:frontend": "bun build src/app.ts --outdir public --target browser --minify",
+    "dev": "bun build src/app.ts --outdir public --target browser && bun run src/server.ts",
+    "start": "bun run src/server.ts",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

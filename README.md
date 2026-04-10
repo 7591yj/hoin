@@ -1,6 +1,6 @@
 # hoin
 
-Cross-platform CLI for one-shot image character classification
+Local web UI / CLI for image character classification
 
 ## Quick Start
 
@@ -12,8 +12,14 @@ hoin model-info --model-dir ./models/holo-hoin
 hoin categorize --model-dir ./models/holo-hoin --dry-run <image-dir>
 ```
 
-For model-specific usage, see the README in `models/<name>/`. Release artifacts ship
-with separate READMEs for CLI archives and model archives.
+To run the local web UI from a source checkout:
+
+```bash
+just serve
+```
+
+For model-specific usage, see the README in `models/<name>/`.
+Release artifacts ship with separate READMEs for CLI archives and model archives.
 
 ## Models
 
@@ -23,6 +29,7 @@ with separate READMEs for CLI archives and model archives.
 ## Layout
 
 - `apps/cli`: Rust CLI
+- `apps/web`: Bun-powered local web UI
 - `packages/metadata-schema`: shared Rust types for metadata contracts
 - `models/`: model projects that export deployable ONNX artifacts
 - `scripts/build-models.sh`: validates the model export contract across `models/*`
@@ -39,6 +46,17 @@ just test
 ```
 
 Without Nix, install stable Rust and `just`, then run the same `just` targets.
+
+Common development commands:
+
+```bash
+just fmt
+just lint
+just check
+just test
+just smoke-web
+just serve
+```
 
 ## Model Contract
 
@@ -72,8 +90,14 @@ paths.
 
 ## Releases
 
-Releases publish CLI archives per OS/architecture target and model archives per
-model. The CLI is built once per OS target and can run any compatible model package.
+Releases publish CLI archives, web UI archives, and model archives. The CLI and
+web UI are built per OS/architecture target. Model archives are OS-independent
+and can be used by any compatible CLI or web UI package.
+
+CLI archives contain only the native `hoin` executable and release instructions.
+Web UI archives contain a native `hoin-web` executable, the matching `hoin`
+executable, browser assets, and release instructions. Model archives contain one
+model package under `models/<name>/`.
 
 If the repository contains:
 
@@ -82,8 +106,11 @@ If the repository contains:
 - `models/c/`
 
 then, the release automation will produce one model archive for `a`, one for `b`,
-and one for `c`, plus the OS-specific CLI archives.
+and one for `c`, plus OS-specific CLI and web UI archives.
 
 For example, `models/test/build.sh` must produce
 `models/test/test.onnx`, and the release model package will include
 `models/test/test.onnx` plus a generated `models/test/hoin-model.json` manifest.
+
+For both CLI and web UI release packages, download one or more model archives and
+move or copy the extracted `models/` directory next to the release executable.

@@ -32,8 +32,8 @@ jobs:
             echo "has_model=true" >> "$GITHUB_OUTPUT"
           fi
 
-  build-cli:
-    name: Build CLI for ${{ matrix.target.target }}
+  build-apps:
+    name: Build release artifacts for ${{ matrix.target.target }}
     runs-on: ${{ matrix.target.os }}
     strategy:
       fail-fast: false
@@ -43,14 +43,17 @@ jobs:
             target: x86_64-unknown-linux-gnu
             archive: tar.gz
             binary: hoin
+            web_binary: hoin-web
           - os: macos-latest
             target: aarch64-apple-darwin
             archive: tar.gz
             binary: hoin
+            web_binary: hoin-web
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             archive: zip
             binary: hoin.exe
+            web_binary: hoin-web.exe
     steps:
       - uses: actions/checkout@v4
 
@@ -58,6 +61,9 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target.target }}
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Cache cargo artifacts
         uses: Swatinem/rust-cache@v2
@@ -85,6 +91,27 @@ jobs:
           binary_file="$(basename "${binary_path}")"
           ./scripts/write-release-readme.sh "${artifact_dir}" "${binary_file}"
 
+      - name: Prepare web UI artifact directory
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          artifact_dir="dist/hoin-web-${version}-${{ matrix.target.target }}"
+          mkdir -p "${artifact_dir}"
+
+          cp "target/${{ matrix.target.target }}/release/${{ matrix.target.binary }}" "${artifact_dir}/${{ matrix.target.binary }}"
+          find "target/${{ matrix.target.target }}/release" -maxdepth 1 \
+            \( -name '*.so' -o -name '*.so.*' -o -name '*.dylib' -o -name '*.dll' \) \
+            -exec cp {} "${artifact_dir}/" \;
+          printf '%s\n' "${version}" > "${artifact_dir}/VERSION"
+
+          cd apps/web
+          bun build src/app.ts --outdir public --target browser --minify
+          bun build src/server.ts --compile --outfile "../../${artifact_dir}/${{ matrix.target.web_binary }}"
+          cd ../..
+
+          cp -R apps/web/public "${artifact_dir}/public"
+          ./scripts/write-web-release-readme.sh "${artifact_dir}" "${{ matrix.target.web_binary }}" "${{ matrix.target.binary }}"
+
       - name: Create tarball
         if: matrix.target.archive == 'tar.gz'
         shell: bash
@@ -92,6 +119,8 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           artifact_name="hoin-${version}-${{ matrix.target.target }}"
           tar -C dist -czf "dist/${artifact_name}.tar.gz" "${artifact_name}"
+          web_artifact_name="hoin-web-${version}-${{ matrix.target.target }}"
+          tar -C dist -czf "dist/${web_artifact_name}.tar.gz" "${web_artifact_name}"
 
       - name: Create zip
         if: matrix.target.archive == 'zip'
@@ -99,12 +128,14 @@ jobs:
         run: |
           $version = $env:GITHUB_REF_NAME.Substring(1)
           $artifactName = "hoin-$version-${{ matrix.target.target }}"
-          Compress-Archive -Path "dist/$artifactName/*" -DestinationPath "dist/$artifactName.zip"
+          Compress-Archive -Path "dist/$artifactName" -DestinationPath "dist/$artifactName.zip"
+          $webArtifactName = "hoin-web-$version-${{ matrix.target.target }}"
+          Compress-Archive -Path "dist/$webArtifactName" -DestinationPath "dist/$webArtifactName.zip"
 
       - name: Upload packaged artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-cli-${{ matrix.target.target }}
+          name: release-apps-${{ matrix.target.target }}
           path: |
             dist/*.tar.gz
             dist/*.zip
@@ -113,7 +144,7 @@ jobs:
     name: Build model ${{ matrix.model.name }}
     runs-on: ubuntu-latest
     needs: detect-models
-    if: needs.detect-models.outputs.has_model == 'true'
+    if: needs['detect-models'].outputs.has_model == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -144,9 +175,9 @@ jobs:
     name: Publish release
     runs-on: ubuntu-latest
     needs:
-      - build-cli
+      - build-apps
       - build-model
-    if: always() && needs.build-cli.result == 'success' && (needs.build-model.result == 'success' || needs.build-model.result == 'skipped')
+    if: always() && needs['build-apps'].result == 'success' && (needs['build-model'].result == 'success' || needs['build-model'].result == 'skipped')
     steps:
       - uses: actions/download-artifact@v4
         with:
