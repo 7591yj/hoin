@@ -1,6 +1,6 @@
 # hoin
 
-Cross-platform CLI for one-shot image character classification
+Local web UI / CLI for image character classification
 
 ## Quick Start
 
@@ -12,8 +12,14 @@ hoin model-info --model-dir ./models/holo-hoin
 hoin categorize --model-dir ./models/holo-hoin --dry-run <image-dir>
 ```
 
-For model-specific usage, see the README in `models/<name>/`. Release artifacts ship
-with separate READMEs for CLI archives and model archives.
+To run the local web UI from a source checkout:
+
+```bash
+just serve
+```
+
+For model-specific usage, see the README in `models/<name>/`.
+Release artifacts ship with separate READMEs for CLI archives and model archives.
 
 ## Models
 
@@ -23,6 +29,7 @@ with separate READMEs for CLI archives and model archives.
 ## Layout
 
 - `apps/cli`: Rust CLI
+- `apps/web`: Bun-powered local web UI
 - `packages/metadata-schema`: shared Rust types for metadata contracts
 - `models/`: model projects that export deployable ONNX artifacts
 - `scripts/build-models.sh`: validates the model export contract across `models/*`
@@ -39,6 +46,17 @@ just test
 ```
 
 Without Nix, install stable Rust and `just`, then run the same `just` targets.
+
+Common development commands:
+
+```bash
+just fmt
+just lint
+just check
+just test
+just smoke-web
+just serve
+```
 
 ## Model Contract
 
