@@ -74,6 +74,9 @@ jobs:
       - name: Lint
         run: biome lint src
 
+      - name: Build frontend
+        run: bun run build:frontend
+
       - name: Build CLI for smoke tests
         working-directory: .
         run: cargo build -p hoin-cli
