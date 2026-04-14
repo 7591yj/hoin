@@ -1,0 +1,60 @@
+name: Release Model Reusable
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+      artifact_version:
+        required: true
+        type: string
+      model_name:
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-model:
+    name: Build model ${{ inputs.model_name }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Build model artifact
+        shell: bash
+        run: |
+          ./scripts/build-models.sh build "${{ inputs.model_name }}"
+
+      - name: Package model
+        shell: bash
+        run: |
+          version="${{ inputs.artifact_version }}"
+          ./scripts/package-release-model.sh "${{ inputs.model_name }}" "${version}" dist
+
+      - name: Upload packaged model
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-model-${{ inputs.model_name }}
+          path: dist/*.tar.gz
+
+  publish-model:
+    name: Publish model release
+    runs-on: ubuntu-latest
+    needs: build-model
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          pattern: release-model-${{ inputs.model_name }}
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ inputs.tag }}
+          tag_name: ${{ inputs.tag }}
+          files: release-artifacts/**/*

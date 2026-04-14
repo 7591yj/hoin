@@ -1,0 +1,140 @@
+name: Release App Reusable
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+      artifact_version:
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-apps:
+    name: Build release artifacts for ${{ matrix.target.target }}
+    runs-on: ${{ matrix.target.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            archive: tar.gz
+            binary: hoin
+            web_binary: hoin-web
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            archive: tar.gz
+            binary: hoin
+            web_binary: hoin-web
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive: zip
+            binary: hoin.exe
+            web_binary: hoin-web.exe
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target.target }}
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build release binary
+        run: cargo build --release --locked --package hoin-cli --target ${{ matrix.target.target }}
+
+      - name: Prepare artifact directory
+        shell: bash
+        run: |
+          version="${{ inputs.artifact_version }}"
+          artifact_dir="dist/hoin-${version}-${{ matrix.target.target }}"
+          mkdir -p "${artifact_dir}"
+
+          binary_path="${artifact_dir}/hoin"
+
+          if [ "${{ matrix.target.binary }}" = "hoin.exe" ]; then
+            binary_path="${artifact_dir}/hoin.exe"
+          fi
+
+          cp "target/${{ matrix.target.target }}/release/${{ matrix.target.binary }}" "${binary_path}"
+          find "target/${{ matrix.target.target }}/release" -maxdepth 1 \
+            \( -name '*.so' -o -name '*.so.*' -o -name '*.dylib' -o -name '*.dll' \) \
+            -exec cp {} "${artifact_dir}/" \;
+          binary_file="$(basename "${binary_path}")"
+          ./scripts/write-release-readme.sh "${artifact_dir}" "${binary_file}"
+
+      - name: Prepare web UI artifact directory
+        shell: bash
+        run: |
+          version="${{ inputs.artifact_version }}"
+          artifact_dir="dist/hoin-web-${version}-${{ matrix.target.target }}"
+          mkdir -p "${artifact_dir}"
+
+          cp "target/${{ matrix.target.target }}/release/${{ matrix.target.binary }}" "${artifact_dir}/${{ matrix.target.binary }}"
+          find "target/${{ matrix.target.target }}/release" -maxdepth 1 \
+            \( -name '*.so' -o -name '*.so.*' -o -name '*.dylib' -o -name '*.dll' \) \
+            -exec cp {} "${artifact_dir}/" \;
+          printf '%s\n' "${version}" > "${artifact_dir}/VERSION"
+
+          cd apps/web
+          bun build src/app.ts --outdir public --target browser --minify
+          bun build src/server.ts --compile --outfile "../../${artifact_dir}/${{ matrix.target.web_binary }}"
+          cd ../..
+
+          cp -R apps/web/public "${artifact_dir}/public"
+          ./scripts/write-web-release-readme.sh "${artifact_dir}" "${{ matrix.target.web_binary }}" "${{ matrix.target.binary }}"
+
+      - name: Create tarball
+        if: matrix.target.archive == 'tar.gz'
+        shell: bash
+        run: |
+          version="${{ inputs.artifact_version }}"
+          artifact_name="hoin-${version}-${{ matrix.target.target }}"
+          tar -C dist -czf "dist/${artifact_name}.tar.gz" "${artifact_name}"
+          web_artifact_name="hoin-web-${version}-${{ matrix.target.target }}"
+          tar -C dist -czf "dist/${web_artifact_name}.tar.gz" "${web_artifact_name}"
+
+      - name: Create zip
+        if: matrix.target.archive == 'zip'
+        shell: pwsh
+        run: |
+          $version = "${{ inputs.artifact_version }}"
+          $artifactName = "hoin-$version-${{ matrix.target.target }}"
+          Compress-Archive -Path "dist/$artifactName" -DestinationPath "dist/$artifactName.zip"
+          $webArtifactName = "hoin-web-$version-${{ matrix.target.target }}"
+          Compress-Archive -Path "dist/$webArtifactName" -DestinationPath "dist/$webArtifactName.zip"
+
+      - name: Upload packaged artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apps-${{ matrix.target.target }}
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+
+  publish-app:
+    name: Publish app release
+    runs-on: ubuntu-latest
+    needs: build-apps
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          pattern: release-apps-*
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ inputs.tag }}
+          tag_name: ${{ inputs.tag }}
+          files: release-artifacts/**/*

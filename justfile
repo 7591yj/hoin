@@ -21,6 +21,9 @@ smoke-web:
   cargo build -p hoin-cli
   cd apps/web && bun test
 
+build-web:
+  cd apps/web && bun run build:frontend
+
 check:
   cargo check --workspace
   ./scripts/ruff-models.sh check
