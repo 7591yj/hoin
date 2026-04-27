@@ -336,7 +336,7 @@ checksum = "ec9d92d097f4749b64e8cc33d924d9f40a2d4eb91402b458014b781f5733d60f"
 
 [[package]]
 name = "hoin-cli"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -472,7 +472,7 @@ checksum = "f8ca58f447f06ed17d5fc4043ce1b10dd205e060fb3ce5b979b8ed8e59ff3f79"
 
 [[package]]
 name = "metadata-schema"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde",
  "serde_json",
