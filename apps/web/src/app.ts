@@ -107,11 +107,12 @@ function renderBottomProgress(progress: CategorizeProgress | null): void {
   }
 
   statusProgress.hidden = false;
-  const hasTotal = typeof progress.total === "number" && progress.total > 0;
-  const percent = hasTotal ? Math.min(100, (progress.completed / progress.total) * 100) : 0;
+  const total = progress.total;
+  const hasTotal = typeof total === "number" && total > 0;
+  const percent = hasTotal ? Math.min(100, (progress.completed / total) * 100) : 0;
 
   statusProgressLabel.textContent = hasTotal
-    ? `${progress.phase === "preview" ? "Preview" : "Apply"} ${progress.completed}/${progress.total}`
+    ? `${progress.phase === "preview" ? "Preview" : "Apply"} ${progress.completed}/${total}`
     : progress.phase === "preview"
       ? "Preview in progress"
       : "Apply in progress";
@@ -153,6 +154,13 @@ function startProgressPolling(): void {
 function showError(el: HTMLElement, msg: string): void {
   el.textContent = msg;
   el.hidden = !msg;
+}
+
+function emptyState(message: string): HTMLParagraphElement {
+  const p = document.createElement("p");
+  p.className = "empty-state";
+  p.textContent = message;
+  return p;
 }
 
 async function apiFetch<T>(path: string, opts: RequestInit = {}): Promise<T> {
@@ -223,7 +231,7 @@ async function loadThumbnails(): Promise<void> {
   const dir = targetDirInput.value.trim();
   if (!dir) {
     setSelectedFiles([]);
-    thumbnailsEl.innerHTML = '<p class="empty-state">Select a target directory to see files.</p>';
+    thumbnailsEl.replaceChildren(emptyState("Select a target directory to see files."));
     return;
   }
   showError(targetError, "");
@@ -236,9 +244,9 @@ async function loadThumbnails(): Promise<void> {
     const visiblePaths = new Set(images.map((entry) => entry.path));
     setSelectedFiles([...selectedFiles].filter((file) => visiblePaths.has(file)));
     if (images.length === 0) {
-      thumbnailsEl.innerHTML = '<p class="empty-state">No images found in this directory.</p>';
+      thumbnailsEl.replaceChildren(emptyState("No images found in this directory."));
     } else {
-      thumbnailsEl.innerHTML = "";
+      thumbnailsEl.replaceChildren();
       for (const entry of images) {
         const preview = previewMap.get(entry.path);
         if (pendingPreview && !preview) continue;
@@ -248,15 +256,29 @@ async function loadThumbnails(): Promise<void> {
         if (preview) thumb.classList.add("thumb--predicted");
         if (selectedFiles.has(entry.path)) thumb.classList.add("thumb--selected");
         thumb.dataset.path = entry.path;
-        thumb.innerHTML = `
-          <img src="/api/thumbnail?path=${encodeURIComponent(entry.path)}" loading="lazy" alt="${entry.name}" />
-          ${
-            preview
-              ? `<div class="thumb-label">${preview.class_key.replace(/_/g, " ")}<span class="thumb-conf">${(preview.confidence * 100).toFixed(0)}%</span></div>`
-              : ""
-          }
-          <div class="thumb-name">${entry.name}</div>
-        `;
+
+        const img = document.createElement("img");
+        img.src = `/api/thumbnail?path=${encodeURIComponent(entry.path)}`;
+        img.loading = "lazy";
+        img.alt = entry.name;
+        thumb.appendChild(img);
+
+        if (preview) {
+          const label = document.createElement("div");
+          label.className = "thumb-label";
+          label.append(preview.class_key.replace(/_/g, " "));
+          const confidence = document.createElement("span");
+          confidence.className = "thumb-conf";
+          confidence.textContent = `${(preview.confidence * 100).toFixed(0)}%`;
+          label.appendChild(confidence);
+          thumb.appendChild(label);
+        }
+
+        const name = document.createElement("div");
+        name.className = "thumb-name";
+        name.textContent = entry.name;
+        thumb.appendChild(name);
+
         thumb.addEventListener("click", () => {
           const next = new Set(selectedFiles);
           if (next.has(entry.path)) {
@@ -275,7 +297,7 @@ async function loadThumbnails(): Promise<void> {
     setStatus(`${images.length} image(s) found.`);
   } catch (e) {
     showError(targetError, (e as Error).message);
-    thumbnailsEl.innerHTML = "";
+    thumbnailsEl.replaceChildren();
     setStatus("Failed to load files.");
   }
 }
@@ -357,25 +379,40 @@ function renderTree(moves: MoveEntry[]): void {
 
   const dirs = Object.keys(tree).sort();
   if (dirs.length === 0) {
-    treeRoot.innerHTML = '<span style="color:var(--muted)">No moves planned.</span>';
+    const empty = document.createElement("span");
+    empty.style.color = "var(--muted)";
+    empty.textContent = "No moves planned.";
+    treeRoot.replaceChildren(empty);
     return;
   }
 
-  treeRoot.innerHTML = dirs
-    .map((dir) => {
-      const files = tree[dir];
-      const filesHtml = files
-        .map((m) => {
-          const name = basename(m.from);
-          return `<div class="tree-file"><span>${name}</span><span class="conf">${(m.confidence * 100).toFixed(0)}%</span></div>`;
-        })
-        .join("");
-      return `
-      <div class="tree-dir" data-tree-dir>${dir}</div>
-      <div class="tree-files">${filesHtml}</div>
-    `;
-    })
-    .join("");
+  treeRoot.replaceChildren();
+  for (const dir of dirs) {
+    const dirEl = document.createElement("div");
+    dirEl.className = "tree-dir";
+    dirEl.dataset.treeDir = "";
+    dirEl.textContent = dir;
+    treeRoot.appendChild(dirEl);
+
+    const filesEl = document.createElement("div");
+    filesEl.className = "tree-files";
+    for (const move of tree[dir]) {
+      const fileEl = document.createElement("div");
+      fileEl.className = "tree-file";
+
+      const nameEl = document.createElement("span");
+      nameEl.textContent = basename(move.from);
+      fileEl.appendChild(nameEl);
+
+      const confidenceEl = document.createElement("span");
+      confidenceEl.className = "conf";
+      confidenceEl.textContent = `${(move.confidence * 100).toFixed(0)}%`;
+      fileEl.appendChild(confidenceEl);
+
+      filesEl.appendChild(fileEl);
+    }
+    treeRoot.appendChild(filesEl);
+  }
 
   treeRoot.querySelectorAll<HTMLElement>("[data-tree-dir]").forEach((dirEl) => {
     dirEl.addEventListener("click", () => {

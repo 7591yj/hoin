@@ -1,4 +1,4 @@
-type Handler = (req: Request, url: URL) => Promise<Response>;
+type Handler = (req: Request, url: URL) => Response | Promise<Response>;
 
 interface Route {
   method: string;

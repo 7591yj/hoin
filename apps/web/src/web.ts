@@ -78,7 +78,7 @@ export async function handleRequest(req: Request): Promise<Response> {
   return new Response(Bun.file(filePath), { headers: { "Content-Type": contentType } });
 }
 
-export function startServer(port: number, hostname = "127.0.0.1"): Bun.Server {
+export function startServer(port: number, hostname = "127.0.0.1"): Bun.Server<undefined> {
   return Bun.serve({
     port,
     hostname,

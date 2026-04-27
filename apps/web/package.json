@@ -5,7 +5,8 @@
     "build:frontend": "bun build src/app.ts --outdir public --target browser --minify",
     "dev": "bun build src/app.ts --outdir public --target browser && bun run src/server.ts",
     "start": "bun run src/server.ts",
-    "test": "bun test"
+    "test": "bun test",
+    "typecheck": "bunx tsc --noEmit"
   },
   "devDependencies": {
     "@types/bun": "latest"

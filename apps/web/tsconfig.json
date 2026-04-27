@@ -6,7 +6,8 @@
     "types": ["bun"],
     "strict": true,
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "skipLibCheck": true
   },
   "include": ["src"]
 }
