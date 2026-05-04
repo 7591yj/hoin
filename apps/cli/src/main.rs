@@ -32,6 +32,9 @@ fn main() -> Result<()> {
             json: false,
             file: vec![],
             progress_json: false,
+            fail_on_failed: false,
+            fail_on_skipped: false,
+            fail_on_empty: false,
         }),
     }
 }

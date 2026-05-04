@@ -153,6 +153,9 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
         } else {
             println!("No files found under {}", root.display());
         }
+        if args.fail_on_empty {
+            bail!("no image files found under {}", root.display());
+        }
         return Ok(());
     }
 
@@ -329,7 +332,28 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
     } else {
         print_summary(&summary, args.dry_run);
     }
+
+    if let Some(message) = automation_failure_message(&summary, &args) {
+        bail!("{message}");
+    }
+
     Ok(())
+}
+
+fn automation_failure_message(summary: &Summary, args: &CategorizeArgs) -> Option<String> {
+    if args.fail_on_failed && summary.failed > 0 {
+        return Some(format!("{} file(s) failed to process", summary.failed));
+    }
+    if args.fail_on_skipped && summary.low_confidence_skipped > 0 {
+        return Some(format!(
+            "{} file(s) skipped due to low confidence",
+            summary.low_confidence_skipped
+        ));
+    }
+    if args.fail_on_empty && summary.image_candidates == 0 {
+        return Some("no image files found".to_string());
+    }
+    None
 }
 
 fn print_summary(summary: &Summary, dry_run: bool) {
@@ -475,6 +499,64 @@ mod tests {
             discover_explicit_files(temp.path(), &[outside.path().to_path_buf()]).unwrap_err();
 
         assert!(error.to_string().contains("outside root"));
+    }
+
+    fn automation_args() -> CategorizeArgs {
+        CategorizeArgs {
+            model_dir: None,
+            path: PathBuf::from("."),
+            dry_run: true,
+            ja: false,
+            min_confidence: 0.3,
+            json: true,
+            file: vec![],
+            progress_json: false,
+            fail_on_failed: false,
+            fail_on_skipped: false,
+            fail_on_empty: false,
+        }
+    }
+
+    #[test]
+    fn automation_failure_message_honors_failed_flag() {
+        let mut args = automation_args();
+        args.fail_on_failed = true;
+        let summary = Summary {
+            failed: 2,
+            ..Summary::default()
+        };
+
+        assert_eq!(
+            automation_failure_message(&summary, &args).as_deref(),
+            Some("2 file(s) failed to process")
+        );
+    }
+
+    #[test]
+    fn automation_failure_message_honors_skipped_flag() {
+        let mut args = automation_args();
+        args.fail_on_skipped = true;
+        let summary = Summary {
+            low_confidence_skipped: 1,
+            ..Summary::default()
+        };
+
+        assert_eq!(
+            automation_failure_message(&summary, &args).as_deref(),
+            Some("1 file(s) skipped due to low confidence")
+        );
+    }
+
+    #[test]
+    fn automation_failure_message_honors_empty_flag() {
+        let mut args = automation_args();
+        args.fail_on_empty = true;
+        let summary = Summary::default();
+
+        assert_eq!(
+            automation_failure_message(&summary, &args).as_deref(),
+            Some("no image files found")
+        );
     }
 
     #[test]

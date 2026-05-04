@@ -17,6 +17,9 @@ Options for categorize:
   --min-confidence <FLOAT>   Skip results below the threshold (default: 0.3)
   --file <PATH>              Classify a specific file; may be repeated
   --progress-json            Emit JSON progress events to stderr
+  --fail-on-failed           Exit non-zero if any file fails to process
+  --fail-on-skipped          Exit non-zero if any file is skipped due to low confidence
+  --fail-on-empty            Exit non-zero if no image files are found
 
 Examples:
   hoin categorize --model-dir ./models/holo-hoin .
@@ -24,6 +27,7 @@ Examples:
   hoin categorize --model-dir ./models/holo-hoin --dry-run --ja /path/to/images
   hoin categorize --model-dir ./models/holo-hoin --dry-run --file ./a.png --file ./b.png /path/to/images
   hoin categorize --model-dir ./models/holo-hoin --dry-run --json --progress-json /path/to/images
+  hoin categorize --model-dir ./models/holo-hoin --json --fail-on-failed --fail-on-empty /path/to/images
   hoin model-info --model-dir ./models/holo-hoin
 
 Notes:
