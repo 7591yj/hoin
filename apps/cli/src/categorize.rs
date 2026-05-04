@@ -82,7 +82,11 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
         .canonicalize()
         .with_context(|| format!("resolve root path {}", args.path.display()))?;
     let mut runtime = ModelRuntime::load(args.model_dir.as_deref())?;
-    let files = discover_files(&root)?;
+    let files = if args.file.is_empty() {
+        discover_files(&root)?
+    } else {
+        discover_explicit_files(&root, &args.file)?
+    };
     let routing_preferences = RoutingPreferences {
         name_locale: if args.ja {
             NameLocale::Ja
@@ -301,13 +305,51 @@ fn discover_files(root: &Path) -> Result<Vec<PathBuf>> {
 
     for entry in WalkDir::new(root).into_iter() {
         let entry = entry.with_context(|| format!("walk directory {}", root.display()))?;
-        if entry.file_type().is_file() && image::ImageFormat::from_path(entry.path()).is_ok() {
+        if is_image_file(entry.path()) {
             files.push(entry.into_path());
         }
     }
 
     files.sort();
     Ok(files)
+}
+
+fn discover_explicit_files(root: &Path, explicit_files: &[PathBuf]) -> Result<Vec<PathBuf>> {
+    let mut files = Vec::new();
+
+    for explicit_file in explicit_files {
+        let candidate = if explicit_file.is_absolute() {
+            explicit_file.to_path_buf()
+        } else {
+            root.join(explicit_file)
+        };
+        let canonical = candidate
+            .canonicalize()
+            .with_context(|| format!("resolve explicit file {}", candidate.display()))?;
+
+        if !is_within_directory(&canonical, root) {
+            bail!(
+                "explicit file {} is outside root {}",
+                canonical.display(),
+                root.display()
+            );
+        }
+        if canonical.is_file() && is_image_file(&canonical) {
+            files.push(canonical);
+        }
+    }
+
+    files.sort();
+    files.dedup();
+    Ok(files)
+}
+
+fn is_image_file(path: &Path) -> bool {
+    path.is_file() && image::ImageFormat::from_path(path).is_ok()
+}
+
+fn is_within_directory(candidate: &Path, dir: &Path) -> bool {
+    candidate == dir || candidate.starts_with(dir)
 }
 
 fn resolve_collision(destination: &Path) -> PathBuf {
@@ -357,6 +399,37 @@ fn move_file(source: &Path, destination: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn discover_explicit_files_uses_only_explicit_images() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        let listed = root.join("listed.png");
+        let unlisted = root.join("unlisted.png");
+        let text = root.join("notes.txt");
+        fs::write(&listed, b"").unwrap();
+        fs::write(&unlisted, b"").unwrap();
+        fs::write(&text, b"not an image").unwrap();
+
+        let files = discover_explicit_files(
+            root,
+            &[listed.clone(), PathBuf::from("notes.txt"), listed.clone()],
+        )
+        .unwrap();
+
+        assert_eq!(files, vec![listed.canonicalize().unwrap()]);
+    }
+
+    #[test]
+    fn discover_explicit_files_rejects_files_outside_root() {
+        let temp = tempfile::tempdir().unwrap();
+        let outside = tempfile::NamedTempFile::new().unwrap();
+
+        let error =
+            discover_explicit_files(temp.path(), &[outside.path().to_path_buf()]).unwrap_err();
+
+        assert!(error.to_string().contains("outside root"));
+    }
 
     #[test]
     fn resolve_collision_adds_numeric_suffix() {

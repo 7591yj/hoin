@@ -40,4 +40,10 @@ pub(crate) struct CategorizeArgs {
     pub(crate) min_confidence: f32,
     #[arg(long, help = "Output results as JSON instead of human-readable text")]
     pub(crate) json: bool,
+    #[arg(
+        long,
+        value_name = "PATH",
+        help = "Categorize a specific file instead of walking the whole directory; may be repeated"
+    )]
+    pub(crate) file: Vec<PathBuf>,
 }

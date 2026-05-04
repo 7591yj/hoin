@@ -50,11 +50,13 @@ export interface CategorizeOptions {
   dryRun: boolean;
   ja?: boolean;
   minConfidence?: number;
+  selectedFiles?: string[];
 }
 
 export async function runCategorize(opts: CategorizeOptions): Promise<CategorizeJsonOutput> {
   const bin = await resolveBin();
 
+  const selectedFiles = opts.selectedFiles ?? [];
   const args = [
     "categorize",
     "--model-dir",
@@ -63,6 +65,7 @@ export async function runCategorize(opts: CategorizeOptions): Promise<Categorize
     ...(opts.dryRun ? ["--dry-run"] : []),
     ...(opts.ja ? ["--ja"] : []),
     ...(opts.minConfidence !== undefined ? ["--min-confidence", String(opts.minConfidence)] : []),
+    ...selectedFiles.flatMap((file) => ["--file", file]),
     opts.targetDir,
   ];
 
