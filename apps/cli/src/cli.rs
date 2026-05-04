@@ -46,4 +46,6 @@ pub(crate) struct CategorizeArgs {
         help = "Categorize a specific file instead of walking the whole directory; may be repeated"
     )]
     pub(crate) file: Vec<PathBuf>,
+    #[arg(long, help = "Emit newline-delimited JSON progress events to stderr")]
+    pub(crate) progress_json: bool,
 }

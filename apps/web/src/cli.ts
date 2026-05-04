@@ -44,6 +44,13 @@ export interface CategorizeJsonOutput {
   };
 }
 
+export interface CategorizeProgressEvent {
+  event: "file_done";
+  completed: number;
+  total: number;
+  file: string;
+}
+
 export interface CategorizeOptions {
   modelDir: string;
   targetDir: string;
@@ -51,6 +58,7 @@ export interface CategorizeOptions {
   ja?: boolean;
   minConfidence?: number;
   selectedFiles?: string[];
+  onProgress?: (event: CategorizeProgressEvent) => void;
 }
 
 export async function runCategorize(opts: CategorizeOptions): Promise<CategorizeJsonOutput> {
@@ -65,6 +73,7 @@ export async function runCategorize(opts: CategorizeOptions): Promise<Categorize
     ...(opts.dryRun ? ["--dry-run"] : []),
     ...(opts.ja ? ["--ja"] : []),
     ...(opts.minConfidence !== undefined ? ["--min-confidence", String(opts.minConfidence)] : []),
+    ...(opts.onProgress ? ["--progress-json"] : []),
     ...selectedFiles.flatMap((file) => ["--file", file]),
     opts.targetDir,
   ];
@@ -73,7 +82,7 @@ export async function runCategorize(opts: CategorizeOptions): Promise<Categorize
 
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
+    readStderr(proc.stderr, opts.onProgress),
     proc.exited,
   ]);
 
@@ -86,4 +95,64 @@ export async function runCategorize(opts: CategorizeOptions): Promise<Categorize
   } catch {
     throw new Error(`Failed to parse hoin JSON output: ${stdout}`);
   }
+}
+
+async function readStderr(
+  stderr: ReadableStream<Uint8Array>,
+  onProgress?: (event: CategorizeProgressEvent) => void,
+): Promise<string> {
+  if (!onProgress) return new Response(stderr).text();
+
+  const reader = stderr.getReader();
+  const decoder = new TextDecoder();
+  let stderrText = "";
+  let bufferedLine = "";
+
+  const handleLine = (line: string): void => {
+    if (!emitProgressEvent(line, onProgress)) stderrText += `${line}\n`;
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    bufferedLine += decoder.decode(value, { stream: true });
+
+    const lines = bufferedLine.split(/\r?\n/);
+    bufferedLine = lines.pop() ?? "";
+    for (const line of lines) {
+      handleLine(line);
+    }
+  }
+
+  bufferedLine += decoder.decode();
+  if (bufferedLine) handleLine(bufferedLine);
+
+  return stderrText;
+}
+
+function emitProgressEvent(
+  line: string,
+  onProgress: (event: CategorizeProgressEvent) => void,
+): boolean {
+  try {
+    const event = JSON.parse(line) as Partial<CategorizeProgressEvent>;
+    if (
+      event.event === "file_done" &&
+      typeof event.completed === "number" &&
+      typeof event.total === "number" &&
+      typeof event.file === "string"
+    ) {
+      onProgress({
+        event: "file_done",
+        completed: event.completed,
+        total: event.total,
+        file: event.file,
+      });
+      return true;
+    }
+  } catch {
+    // Keep non-JSON stderr for error reporting.
+  }
+  return false;
 }

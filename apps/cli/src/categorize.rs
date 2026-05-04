@@ -1,4 +1,5 @@
 use std::{
+    cell::Cell,
     fs,
     path::{Path, PathBuf},
 };
@@ -57,6 +58,41 @@ struct JsonSummary {
     low_confidence_skipped: usize,
     already_categorized: usize,
     failed: usize,
+}
+
+#[derive(Debug, Serialize)]
+struct ProgressEvent {
+    event: &'static str,
+    completed: usize,
+    total: usize,
+    file: PathBuf,
+}
+
+struct ProgressOnDrop<'a> {
+    enabled: bool,
+    completed: &'a Cell<usize>,
+    total: usize,
+    file: PathBuf,
+}
+
+impl Drop for ProgressOnDrop<'_> {
+    fn drop(&mut self) {
+        if !self.enabled {
+            return;
+        }
+
+        let completed = self.completed.get() + 1;
+        self.completed.set(completed);
+        let event = ProgressEvent {
+            event: "file_done",
+            completed,
+            total: self.total,
+            file: self.file.clone(),
+        };
+        if let Ok(line) = serde_json::to_string(&event) {
+            eprintln!("{line}");
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -131,7 +167,17 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
     let mut json_already_categorized: Vec<AlreadyCategorizedEntry> = vec![];
     let mut json_failed: Vec<FailedEntry> = vec![];
 
+    let completed = Cell::new(0);
+    let total = files.len();
+
     for source in files {
+        let _progress = ProgressOnDrop {
+            enabled: args.progress_json,
+            completed: &completed,
+            total,
+            file: source.clone(),
+        };
+
         match runtime.classify_path(&source) {
             Ok(classification) => {
                 if classification.confidence < args.min_confidence {

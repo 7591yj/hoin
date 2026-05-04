@@ -31,6 +31,7 @@ fn main() -> Result<()> {
             min_confidence: cli::DEFAULT_MIN_CONFIDENCE,
             json: false,
             file: vec![],
+            progress_json: false,
         }),
     }
 }

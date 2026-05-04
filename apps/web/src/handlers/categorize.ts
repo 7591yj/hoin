@@ -130,6 +130,17 @@ export async function handleCategorizePreview(req: Request, _url: URL): Promise<
       targetDir,
       dryRun: true,
       selectedFiles,
+      onProgress: (event) => {
+        session.categorizeProgress = {
+          phase: "preview",
+          state: "running",
+          completed: event.completed,
+          total: event.total,
+          message: `Categorizing ${event.completed}/${event.total} image(s)…`,
+          startedAt: session.categorizeProgress.startedAt,
+          updatedAt: Date.now(),
+        };
+      },
     });
     const filtered = output;
     session.categorizeProgress = {

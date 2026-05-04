@@ -16,12 +16,14 @@ Options for categorize:
   --ja                       Use Japanese character names when supported
   --min-confidence <FLOAT>   Skip results below the threshold (default: 0.3)
   --file <PATH>              Classify a specific file; may be repeated
+  --progress-json            Emit JSON progress events to stderr
 
 Examples:
   hoin categorize --model-dir ./models/holo-hoin .
   hoin categorize --model-dir ./models/holo-hoin --dry-run /path/to/images
   hoin categorize --model-dir ./models/holo-hoin --dry-run --ja /path/to/images
   hoin categorize --model-dir ./models/holo-hoin --dry-run --file ./a.png --file ./b.png /path/to/images
+  hoin categorize --model-dir ./models/holo-hoin --dry-run --json --progress-json /path/to/images
   hoin model-info --model-dir ./models/holo-hoin
 
 Notes:
