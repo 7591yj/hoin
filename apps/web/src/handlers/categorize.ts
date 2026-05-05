@@ -2,8 +2,9 @@ import { runCategorize } from "../cli.ts";
 import { resolveAllowedPath } from "../allowed-paths.ts";
 import { session } from "../session.ts";
 import { jsonResponse } from "../router.ts";
-import { access, mkdir, rename } from "node:fs/promises";
+import { access, mkdir } from "node:fs/promises";
 import path from "node:path";
+import { moveFile } from "../file-move.ts";
 
 interface MoveEntry {
   from: string;
@@ -209,7 +210,7 @@ export async function handleCategorizeApply(req: Request, _url: URL): Promise<Re
 
       try {
         await mkdir(path.dirname(to), { recursive: true });
-        await rename(from, to);
+        await moveFile(from, to);
         appliedMoves.push({ ...move, from, to });
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
