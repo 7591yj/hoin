@@ -385,23 +385,28 @@ fn discover_files(root: &Path) -> Result<Vec<PathBuf>> {
 }
 
 fn discover_explicit_files(root: &Path, explicit_files: &[PathBuf]) -> Result<Vec<PathBuf>> {
+    let canonical_root = root
+        .canonicalize()
+        .with_context(|| format!("resolve root path {}", root.display()))?;
     let mut files = Vec::new();
 
     for explicit_file in explicit_files {
         let candidate = if explicit_file.is_absolute() {
             explicit_file.to_path_buf()
         } else {
-            root.join(explicit_file)
+            canonical_root.join(explicit_file)
         };
         let canonical = candidate
             .canonicalize()
             .with_context(|| format!("resolve explicit file {}", candidate.display()))?;
 
-        if !is_within_directory(&canonical, root) {
+        if !is_within_directory(&candidate, root)
+            && !is_within_directory(&canonical, &canonical_root)
+        {
             bail!(
                 "explicit file {} is outside root {}",
                 canonical.display(),
-                root.display()
+                canonical_root.display()
             );
         }
         if canonical.is_file() && is_image_file(&canonical) {
@@ -482,7 +487,9 @@ fn copy_then_unlink(source: &Path, destination: &Path) -> Result<()> {
         )
     })?;
 
-    fs::File::open(destination)
+    fs::OpenOptions::new()
+        .write(true)
+        .open(destination)
         .and_then(|file| file.sync_all())
         .with_context(|| format!("sync copied image {}", destination.display()))?;
 
