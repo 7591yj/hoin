@@ -488,6 +488,38 @@ mod tests {
         assert_eq!(fs::read(&destination).unwrap(), b"image");
     }
 
+    fn move_entry(from: &Path, to: &Path) -> MoveEntry {
+        MoveEntry {
+            from: from.to_path_buf(),
+            to: to.to_path_buf(),
+            class_key: "class".to_string(),
+            confidence: 0.9,
+        }
+    }
+
+    fn plan_with(moves: Vec<MoveEntry>) -> JsonOutput {
+        JsonOutput {
+            dry_run: true,
+            summary: JsonSummary {
+                scanned: moves.len(),
+                image_candidates: moves.len(),
+                moves: moves.len(),
+                routed_to_others: 0,
+                low_confidence_skipped: 0,
+                already_categorized: 0,
+                failed: 0,
+            },
+            moves,
+            skipped: vec![],
+            already_categorized: vec![],
+            failed: vec![],
+        }
+    }
+
+    fn write_json(path: &Path, value: &impl serde::Serialize) {
+        fs::write(path, serde_json::to_string(value).unwrap()).unwrap();
+    }
+
     #[test]
     fn apply_plan_and_revert_operation_move_files() {
         let temp = tempfile::tempdir().unwrap();
@@ -497,37 +529,72 @@ mod tests {
         let operation_path = temp.path().join("operation.json");
         fs::write(&source, b"image").unwrap();
 
-        let plan = JsonOutput {
-            dry_run: true,
-            moves: vec![MoveEntry {
-                from: source.clone(),
-                to: destination.clone(),
-                class_key: "amane_kanata".to_string(),
-                confidence: 0.9,
-            }],
-            skipped: vec![],
-            already_categorized: vec![],
-            failed: vec![],
-            summary: JsonSummary {
-                scanned: 1,
-                image_candidates: 1,
-                moves: 1,
-                routed_to_others: 0,
-                low_confidence_skipped: 0,
-                already_categorized: 0,
-                failed: 0,
-            },
-        };
-        fs::write(&plan_path, serde_json::to_string(&plan).unwrap()).unwrap();
+        let plan = plan_with(vec![move_entry(&source, &destination)]);
+        write_json(&plan_path, &plan);
 
         apply_plan(&plan_path).unwrap();
         assert!(!source.exists());
         assert_eq!(fs::read(&destination).unwrap(), b"image");
 
-        let operation = OperationOutput { moves: plan.moves };
-        fs::write(&operation_path, serde_json::to_string(&operation).unwrap()).unwrap();
+        write_json(&operation_path, &OperationOutput { moves: plan.moves });
         revert_operation(&operation_path).unwrap();
         assert_eq!(fs::read(&source).unwrap(), b"image");
         assert!(!destination.exists());
+    }
+
+    #[test]
+    fn apply_plan_preflights_before_moving_any_file() {
+        let temp = tempfile::tempdir().unwrap();
+        let source1 = temp.path().join("one.png");
+        let source2 = temp.path().join("two.png");
+        let destination1 = temp.path().join("categorized/one.png");
+        let destination2 = temp.path().join("categorized/two.png");
+        let plan_path = temp.path().join("plan.json");
+        fs::create_dir_all(destination1.parent().unwrap()).unwrap();
+        fs::write(&source1, b"one").unwrap();
+        fs::write(&source2, b"two").unwrap();
+        fs::write(&destination2, b"blocks apply").unwrap();
+        write_json(
+            &plan_path,
+            &plan_with(vec![
+                move_entry(&source1, &destination1),
+                move_entry(&source2, &destination2),
+            ]),
+        );
+
+        let error = apply_plan(&plan_path).unwrap_err();
+
+        assert!(error.to_string().contains("destination already exists"));
+        assert_eq!(fs::read(&source1).unwrap(), b"one");
+        assert!(!destination1.exists());
+    }
+
+    #[test]
+    fn revert_operation_preflights_before_moving_any_file() {
+        let temp = tempfile::tempdir().unwrap();
+        let source1 = temp.path().join("one.png");
+        let source2 = temp.path().join("two.png");
+        let destination1 = temp.path().join("categorized/one.png");
+        let destination2 = temp.path().join("categorized/two.png");
+        let operation_path = temp.path().join("operation.json");
+        fs::create_dir_all(destination1.parent().unwrap()).unwrap();
+        fs::write(&source1, b"blocks revert").unwrap();
+        fs::write(&destination1, b"one").unwrap();
+        fs::write(&destination2, b"two").unwrap();
+        write_json(
+            &operation_path,
+            &OperationOutput {
+                moves: vec![
+                    move_entry(&source1, &destination1),
+                    move_entry(&source2, &destination2),
+                ],
+            },
+        );
+
+        let error = revert_operation(&operation_path).unwrap_err();
+
+        assert!(error.to_string().contains("original path already exists"));
+        assert_eq!(fs::read(&destination2).unwrap(), b"two");
+        assert!(!source2.exists());
     }
 }
