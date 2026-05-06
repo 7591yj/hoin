@@ -1,4 +1,5 @@
-import { access } from "node:fs/promises";
+import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -61,9 +62,55 @@ export interface CategorizeOptions {
   onProgress?: (event: CategorizeProgressEvent) => void;
 }
 
-export async function runCategorize(opts: CategorizeOptions): Promise<CategorizeJsonOutput> {
-  const bin = await resolveBin();
+export interface OperationJsonOutput {
+  moves: Array<{ from: string; to: string; class_key: string; confidence: number }>;
+}
 
+export async function runApply(plan: CategorizeJsonOutput): Promise<OperationJsonOutput> {
+  return runJsonFileCommand<CategorizeJsonOutput, OperationJsonOutput>("apply", "plan", plan);
+}
+
+export async function runRevert(operation: OperationJsonOutput): Promise<{ reverted: number }> {
+  return runJsonFileCommand<OperationJsonOutput, { reverted: number }>(
+    "revert",
+    "operation",
+    operation,
+  );
+}
+
+async function runJsonFileCommand<TInput, TOutput>(
+  command: "apply" | "revert",
+  fileStem: string,
+  payload: TInput,
+): Promise<TOutput> {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), `hoin-${command}-`));
+  const jsonPath = path.join(tempDir, `${fileStem}.json`);
+  try {
+    await writeFile(jsonPath, JSON.stringify(payload), "utf8");
+    const { stdout } = await runHoin([command, jsonPath]);
+    return JSON.parse(stdout) as TOutput;
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
+}
+
+async function runHoin(
+  args: string[],
+  readStderrStream: (stderr: ReadableStream<Uint8Array>) => Promise<string> = (stderr) =>
+    new Response(stderr).text(),
+): Promise<{ stdout: string; stderr: string }> {
+  const bin = await resolveBin();
+  const proc = Bun.spawn([bin, ...args], { stdout: "pipe", stderr: "pipe" });
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    readStderrStream(proc.stderr),
+    proc.exited,
+  ]);
+  if (exitCode !== 0) throw new Error(`hoin exited with code ${exitCode}: ${stderr}`);
+  return { stdout, stderr };
+}
+
+export async function runCategorize(opts: CategorizeOptions): Promise<CategorizeJsonOutput> {
   const selectedFiles = opts.selectedFiles ?? [];
   const args = [
     "categorize",
@@ -78,17 +125,7 @@ export async function runCategorize(opts: CategorizeOptions): Promise<Categorize
     opts.targetDir,
   ];
 
-  const proc = Bun.spawn([bin, ...args], { stdout: "pipe", stderr: "pipe" });
-
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(proc.stdout).text(),
-    readStderr(proc.stderr, opts.onProgress),
-    proc.exited,
-  ]);
-
-  if (exitCode !== 0) {
-    throw new Error(`hoin exited with code ${exitCode}: ${stderr}`);
-  }
+  const { stdout } = await runHoin(args, (stderr) => readStderr(stderr, opts.onProgress));
 
   try {
     return JSON.parse(stdout) as CategorizeJsonOutput;

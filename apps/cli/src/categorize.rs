@@ -1,64 +1,25 @@
 use std::{
     cell::Cell,
-    fs,
     path::{Path, PathBuf},
 };
 
+use crate::{cli::CategorizeArgs, model::ModelRuntime};
 use anyhow::{Context, Result, bail};
 use metadata_schema::routing::{NameLocale, RoutingPreferences, route_relative_destination};
 use serde::Serialize;
-use walkdir::WalkDir;
 
-use crate::{cli::CategorizeArgs, model::ModelRuntime};
+mod discovery;
+mod fs_ops;
+mod operations;
+mod types;
 
-#[derive(Debug, Default)]
-struct Summary {
-    scanned: usize,
-    image_candidates: usize,
-    moved: usize,
-    routed_to_others: usize,
-    low_confidence_skipped: usize,
-    already_categorized: usize,
-    failed: usize,
-}
+pub(crate) use operations::{apply_plan, revert_operation};
 
-#[derive(Debug, Serialize)]
-struct MoveEntry {
-    from: PathBuf,
-    to: PathBuf,
-    class_key: String,
-    confidence: f32,
-}
-
-#[derive(Debug, Serialize)]
-struct SkippedEntry {
-    file: PathBuf,
-    reason: &'static str,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    confidence: Option<f32>,
-}
-
-#[derive(Debug, Serialize)]
-struct AlreadyCategorizedEntry {
-    file: PathBuf,
-}
-
-#[derive(Debug, Serialize)]
-struct FailedEntry {
-    file: PathBuf,
-    reason: String,
-}
-
-#[derive(Debug, Serialize)]
-struct JsonSummary {
-    scanned: usize,
-    image_candidates: usize,
-    moves: usize,
-    routed_to_others: usize,
-    low_confidence_skipped: usize,
-    already_categorized: usize,
-    failed: usize,
-}
+use discovery::{discover_explicit_files, discover_files};
+use fs_ops::move_file;
+use types::{
+    AlreadyCategorizedEntry, FailedEntry, JsonOutput, JsonSummary, MoveEntry, SkippedEntry, Summary,
+};
 
 #[derive(Debug, Serialize)]
 struct ProgressEvent {
@@ -93,16 +54,6 @@ impl Drop for ProgressOnDrop<'_> {
             eprintln!("{line}");
         }
     }
-}
-
-#[derive(Debug, Serialize)]
-struct JsonOutput {
-    dry_run: bool,
-    moves: Vec<MoveEntry>,
-    skipped: Vec<SkippedEntry>,
-    already_categorized: Vec<AlreadyCategorizedEntry>,
-    failed: Vec<FailedEntry>,
-    summary: JsonSummary,
 }
 
 pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
@@ -188,7 +139,7 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
                     if args.json {
                         json_skipped.push(SkippedEntry {
                             file: source,
-                            reason: "low_confidence",
+                            reason: "low_confidence".to_string(),
                             confidence: Some(classification.confidence),
                         });
                     } else {
@@ -370,63 +321,6 @@ fn print_summary(summary: &Summary, dry_run: bool) {
     );
 }
 
-fn discover_files(root: &Path) -> Result<Vec<PathBuf>> {
-    let mut files = Vec::new();
-
-    for entry in WalkDir::new(root).into_iter() {
-        let entry = entry.with_context(|| format!("walk directory {}", root.display()))?;
-        if is_image_file(entry.path()) {
-            files.push(entry.into_path());
-        }
-    }
-
-    files.sort();
-    Ok(files)
-}
-
-fn discover_explicit_files(root: &Path, explicit_files: &[PathBuf]) -> Result<Vec<PathBuf>> {
-    let canonical_root = root
-        .canonicalize()
-        .with_context(|| format!("resolve root path {}", root.display()))?;
-    let mut files = Vec::new();
-
-    for explicit_file in explicit_files {
-        let candidate = if explicit_file.is_absolute() {
-            explicit_file.to_path_buf()
-        } else {
-            canonical_root.join(explicit_file)
-        };
-        let canonical = candidate
-            .canonicalize()
-            .with_context(|| format!("resolve explicit file {}", candidate.display()))?;
-
-        if !is_within_directory(&candidate, root)
-            && !is_within_directory(&canonical, &canonical_root)
-        {
-            bail!(
-                "explicit file {} is outside root {}",
-                canonical.display(),
-                canonical_root.display()
-            );
-        }
-        if canonical.is_file() && is_image_file(&canonical) {
-            files.push(canonical);
-        }
-    }
-
-    files.sort();
-    files.dedup();
-    Ok(files)
-}
-
-fn is_image_file(path: &Path) -> bool {
-    path.is_file() && image::ImageFormat::from_path(path).is_ok()
-}
-
-fn is_within_directory(candidate: &Path, dir: &Path) -> bool {
-    candidate == dir || candidate.starts_with(dir)
-}
-
 fn resolve_collision(destination: &Path) -> PathBuf {
     if !destination.exists() {
         return destination.to_path_buf();
@@ -455,61 +349,12 @@ fn resolve_collision(destination: &Path) -> PathBuf {
     unreachable!("collision resolver should always find a free path");
 }
 
-fn move_file(source: &Path, destination: &Path) -> Result<()> {
-    let parent = destination
-        .parent()
-        .context("destination has no parent directory")?;
-    fs::create_dir_all(parent)
-        .with_context(|| format!("create destination directory {}", parent.display()))?;
-    match fs::rename(source, destination) {
-        Ok(()) => Ok(()),
-        Err(error) if is_cross_device_error(&error) => copy_then_unlink(source, destination),
-        Err(error) => Err(error).with_context(|| {
-            format!(
-                "move image from {} to {}",
-                source.display(),
-                destination.display()
-            )
-        }),
-    }
-}
-
-fn is_cross_device_error(error: &std::io::Error) -> bool {
-    matches!(error.raw_os_error(), Some(18) | Some(17))
-}
-
-fn copy_then_unlink(source: &Path, destination: &Path) -> Result<()> {
-    fs::copy(source, destination).with_context(|| {
-        format!(
-            "copy image from {} to {} after cross-filesystem rename failed",
-            source.display(),
-            destination.display()
-        )
-    })?;
-
-    fs::OpenOptions::new()
-        .write(true)
-        .open(destination)
-        .and_then(|file| file.sync_all())
-        .with_context(|| format!("sync copied image {}", destination.display()))?;
-
-    if let Some(parent) = destination.parent() {
-        sync_directory(parent);
-    }
-
-    fs::remove_file(source)
-        .with_context(|| format!("remove source image {} after copy", source.display()))?;
-    Ok(())
-}
-
-fn sync_directory(directory: &Path) {
-    if let Ok(file) = fs::File::open(directory) {
-        let _ = file.sync_all();
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
+    use super::fs_ops::copy_then_unlink;
+    use super::types::OperationOutput;
     use super::*;
 
     #[test]
@@ -641,5 +486,48 @@ mod tests {
 
         assert!(!source.exists());
         assert_eq!(fs::read(&destination).unwrap(), b"image");
+    }
+
+    #[test]
+    fn apply_plan_and_revert_operation_move_files() {
+        let temp = tempfile::tempdir().unwrap();
+        let source = temp.path().join("input.png");
+        let destination = temp.path().join("JP/04/Amane Kanata/input.png");
+        let plan_path = temp.path().join("plan.json");
+        let operation_path = temp.path().join("operation.json");
+        fs::write(&source, b"image").unwrap();
+
+        let plan = JsonOutput {
+            dry_run: true,
+            moves: vec![MoveEntry {
+                from: source.clone(),
+                to: destination.clone(),
+                class_key: "amane_kanata".to_string(),
+                confidence: 0.9,
+            }],
+            skipped: vec![],
+            already_categorized: vec![],
+            failed: vec![],
+            summary: JsonSummary {
+                scanned: 1,
+                image_candidates: 1,
+                moves: 1,
+                routed_to_others: 0,
+                low_confidence_skipped: 0,
+                already_categorized: 0,
+                failed: 0,
+            },
+        };
+        fs::write(&plan_path, serde_json::to_string(&plan).unwrap()).unwrap();
+
+        apply_plan(&plan_path).unwrap();
+        assert!(!source.exists());
+        assert_eq!(fs::read(&destination).unwrap(), b"image");
+
+        let operation = OperationOutput { moves: plan.moves };
+        fs::write(&operation_path, serde_json::to_string(&operation).unwrap()).unwrap();
+        revert_operation(&operation_path).unwrap();
+        assert_eq!(fs::read(&source).unwrap(), b"image");
+        assert!(!destination.exists());
     }
 }

@@ -16,11 +16,25 @@ pub(crate) struct Cli {
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
     Categorize(CategorizeArgs),
+    Apply(PlanArgs),
+    Revert(OperationArgs),
     Help,
     ModelInfo {
         #[arg(long)]
         model_dir: Option<PathBuf>,
     },
+}
+
+#[derive(Debug, Clone, Args)]
+pub(crate) struct PlanArgs {
+    #[arg(value_name = "PLAN_JSON")]
+    pub(crate) plan: PathBuf,
+}
+
+#[derive(Debug, Clone, Args)]
+pub(crate) struct OperationArgs {
+    #[arg(value_name = "OPERATION_JSON")]
+    pub(crate) operation: PathBuf,
 }
 
 #[derive(Debug, Clone, Args)]
