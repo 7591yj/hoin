@@ -350,9 +350,6 @@ fn automation_failure_message(summary: &Summary, args: &CategorizeArgs) -> Optio
             summary.low_confidence_skipped
         ));
     }
-    if args.fail_on_empty && summary.image_candidates == 0 {
-        return Some("no image files found".to_string());
-    }
     None
 }
 
@@ -586,18 +583,6 @@ mod tests {
         assert_eq!(
             automation_failure_message(&summary, &args).as_deref(),
             Some("1 file(s) skipped due to low confidence")
-        );
-    }
-
-    #[test]
-    fn automation_failure_message_honors_empty_flag() {
-        let mut args = automation_args();
-        args.fail_on_empty = true;
-        let summary = Summary::default();
-
-        assert_eq!(
-            automation_failure_message(&summary, &args).as_deref(),
-            Some("no image files found")
         );
     }
 
