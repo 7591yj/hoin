@@ -1,7 +1,7 @@
 {
-  "num_classes": 62,
+  "num_classes": 59,
   "img_size": 224,
-  "best_val_acc": 0.8651802458845593,
-  "test_acc": 0.8512190039591582,
-  "model": "swin_tiny_patch4_window7_224"
+  "best_val_acc": 0.952489837398374,
+  "test_acc": 0.9522357723577236,
+  "backbone": "swin_tiny_patch4_window7_224"
 }
