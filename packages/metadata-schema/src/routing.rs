@@ -1,6 +1,7 @@
 use std::{error::Error, ffi::OsStr, fmt, path::PathBuf};
 
 use crate::models::holo_hoin::{HoloHoinMeta, output_class_keys as holo_hoin_output_class_keys};
+use crate::models::molu_hoin::{MoluHoinMeta, output_class_keys as molu_hoin_output_class_keys};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum NameLocale {
@@ -51,6 +52,11 @@ pub fn route_relative_destination(
             preferences.name_locale,
             file_name,
         )),
+        "molu-hoin" => Ok(MoluHoinMeta::relative_destination_for_class_key(
+            class_key,
+            preferences.name_locale,
+            file_name,
+        )),
         _ => Err(RoutingError::unsupported_model(model_name)),
     }
 }
@@ -58,6 +64,7 @@ pub fn route_relative_destination(
 pub fn class_key_for_output_index(model_name: &str, output_index: usize) -> Option<&'static str> {
     match model_name {
         "holo-hoin" => holo_hoin_output_class_keys().get(output_index).copied(),
+        "molu-hoin" => molu_hoin_output_class_keys().get(output_index).copied(),
         _ => None,
     }
 }
@@ -123,5 +130,48 @@ mod tests {
             Some("amane_kanata")
         );
         assert_eq!(class_key_for_output_index("holo-hoin", 999), None);
+    }
+
+    #[test]
+    fn routes_molu_hoin_predictions() {
+        let path = route_relative_destination(
+            "molu-hoin",
+            "hina_(blue_archive)",
+            OsStr::new("input.png"),
+            RoutingPreferences::default(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            path,
+            PathBuf::from("Gehenna/Prefect Team/Hina Sorasaki/input.png")
+        );
+    }
+
+    #[test]
+    fn routes_molu_hoin_predictions_in_japanese_when_requested() {
+        let path = route_relative_destination(
+            "molu-hoin",
+            "hina_(blue_archive)",
+            OsStr::new("input.png"),
+            RoutingPreferences {
+                name_locale: NameLocale::Ja,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(
+            path,
+            PathBuf::from("Gehenna/Prefect Team/空崎ヒナ/input.png")
+        );
+    }
+
+    #[test]
+    fn resolves_molu_hoin_output_indexes() {
+        assert_eq!(
+            class_key_for_output_index("molu-hoin", 24),
+            Some("hina_(blue_archive)"),
+        );
+        assert_eq!(class_key_for_output_index("molu-hoin", 9999), None);
     }
 }
