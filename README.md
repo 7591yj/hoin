@@ -25,6 +25,8 @@ Release artifacts ship with separate READMEs for CLI archives and model archives
 
 - [holo-hoin](models/holo-hoin/README.md): image classifier for identifying the
   Hololive character shown in an input image
+- [molu-hoin](models/molu-hoin/README.md): image classifier for identifying the
+  Blue Archive student shown in an input image
 
 ## Layout
 

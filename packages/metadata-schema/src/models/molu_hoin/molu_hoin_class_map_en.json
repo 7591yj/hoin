@@ -1,0 +1,442 @@
+{
+  "airi_(blue_archive)": {
+    "char_name": "Airi Kurimura",
+    "school": "Trinity",
+    "club": "After-School Sweets Club"
+  },
+  "akane_(blue_archive)": {
+    "char_name": "Akane Murokasa",
+    "school": "Millennium",
+    "club": "Cleaning & Clearing"
+  },
+  "akira_(blue_archive)": {
+    "char_name": "Akira Kiyosumi",
+    "school": "Wildhunt",
+    "club": "Seven Prisoners"
+  },
+  "ako_(blue_archive)": {
+    "char_name": "Ako Amau",
+    "school": "Gehenna",
+    "club": "Prefect Team"
+  },
+  "aris_(blue_archive)": {
+    "char_name": "Arisu Tendou",
+    "school": "Millennium",
+    "club": "Game Development Club"
+  },
+  "arona_(blue_archive)": {
+    "char_name": "Arona",
+    "school": "Schale",
+    "club": null
+  },
+  "aru_(blue_archive)": {
+    "char_name": "Aru Rikuhachima",
+    "school": "Gehenna",
+    "club": "Problem Solver 68"
+  },
+  "asuna_(blue_archive)": {
+    "char_name": "Asuna Ichinose",
+    "school": "Millennium",
+    "club": "Cleaning & Clearing"
+  },
+  "atsuko_(blue_archive)": {
+    "char_name": "Atsuko Hakari",
+    "school": "Arius",
+    "club": "Arius Squad"
+  },
+  "ayane_(blue_archive)": {
+    "char_name": "Ayane Okusora",
+    "school": "Abydos",
+    "club": "Foreclosure Task Force"
+  },
+  "azusa_(blue_archive)": {
+    "char_name": "Azusa Shirasu",
+    "school": "Trinity",
+    "club": "Make-Up Work Club"
+  },
+  "eimi_(blue_archive)": {
+    "char_name": "Eimi Izumimoto",
+    "school": "Millennium",
+    "club": "Super Phenomenon Task Force"
+  },
+  "eri_(blue_archive)": {
+    "char_name": "Eri Shirao",
+    "school": "Wildhunt",
+    "club": "Occult Investigation Society"
+  },
+  "fubuki_(blue_archive)": {
+    "char_name": "Fubuki Nemugaki",
+    "school": "Valkyrie",
+    "club": "Public Safety Bureau"
+  },
+  "fuuka_(blue_archive)": {
+    "char_name": "Fuuka Aikiyo",
+    "school": "Gehenna",
+    "club": "School Lunch Club"
+  },
+  "hanako_(blue_archive)": {
+    "char_name": "Hanako Urawa",
+    "school": "Trinity",
+    "club": "Make-Up Work Club"
+  },
+  "hare_(blue_archive)": {
+    "char_name": "Hare Omagari",
+    "school": "Millennium",
+    "club": "Veritas"
+  },
+  "haruka_(blue_archive)": {
+    "char_name": "Haruka Igusa",
+    "school": "Gehenna",
+    "club": "Problem Solver 68"
+  },
+  "haruna_(blue_archive)": {
+    "char_name": "Haruna Kurodate",
+    "school": "Gehenna",
+    "club": "Gourmet Research Society"
+  },
+  "hasumi_(blue_archive)": {
+    "char_name": "Hasumi Hanekawa",
+    "school": "Trinity",
+    "club": "Justice Task Force"
+  },
+  "hibiki_(blue_archive)": {
+    "char_name": "Hibiki Nekozuka",
+    "school": "Millennium",
+    "club": "Engineering Department"
+  },
+  "hifumi_(blue_archive)": {
+    "char_name": "Hifumi Ajitani",
+    "school": "Trinity",
+    "club": "Make-Up Work Club"
+  },
+  "hikari_(blue_archive)": {
+    "char_name": "Hikari Tachibana",
+    "school": "Highlander",
+    "club": "CCC"
+  },
+  "himari_(blue_archive)": {
+    "char_name": "Himari Akeboshi",
+    "school": "Millennium",
+    "club": "Super Phenomenon Task Force"
+  },
+  "hina_(blue_archive)": {
+    "char_name": "Hina Sorasaki",
+    "school": "Gehenna",
+    "club": "Prefect Team"
+  },
+  "hinata_(blue_archive)": {
+    "char_name": "Hinata Wakaba",
+    "school": "Trinity",
+    "club": "The Sisterhood"
+  },
+  "hiyori_(blue_archive)": {
+    "char_name": "Hiyori Tsuchinaga",
+    "school": "Arius",
+    "club": "Arius Squad"
+  },
+  "hoshino_(blue_archive)": {
+    "char_name": "Hoshino Takanashi",
+    "school": "Abydos",
+    "club": "Foreclosure Task Force"
+  },
+  "ibuki_(blue_archive)": {
+    "char_name": "Ibuki Tanga",
+    "school": "Gehenna",
+    "club": "Pandemonium Society"
+  },
+  "ichika_(blue_archive)": {
+    "char_name": "Ichika Nakamasa",
+    "school": "Trinity",
+    "club": "Justice Task Force"
+  },
+  "iori_(blue_archive)": {
+    "char_name": "Iori Shiromi",
+    "school": "Gehenna",
+    "club": "Prefect Team"
+  },
+  "iroha_(blue_archive)": {
+    "char_name": "Iroha Natsume",
+    "school": "Gehenna",
+    "club": "Pandemonium Society"
+  },
+  "izuna_(blue_archive)": {
+    "char_name": "Izuna Kuda",
+    "school": "Hyakkiyako",
+    "club": "Ninjutsu Research Department"
+  },
+  "justice_task_force_member_(blue_archive)": {
+    "char_name": "Justice Task Force Member",
+    "school": "Trinity",
+    "club": "Justice Task Force"
+  },
+  "kanna_(blue_archive)": {
+    "char_name": "Kanna Ogata",
+    "school": "Valkyrie",
+    "club": "Public Peace Bureau"
+  },
+  "kanoe_(blue_archive)": {
+    "char_name": "Kanoe Itagaki",
+    "school": "Wildhunt",
+    "club": "Occult Investigation Society"
+  },
+  "karin_(blue_archive)": {
+    "char_name": "Karin Kakudate",
+    "school": "Millennium",
+    "club": "Cleaning & Clearing"
+  },
+  "kasumi_(blue_archive)": {
+    "char_name": "Kasumi Kinugawa",
+    "school": "Gehenna",
+    "club": "Hot Springs Department"
+  },
+  "kayoko_(blue_archive)": {
+    "char_name": "Kayoko Onikata",
+    "school": "Gehenna",
+    "club": "Problem Solver 68"
+  },
+  "kazusa_(blue_archive)": {
+    "char_name": "Kazusa Kyoyama",
+    "school": "Trinity",
+    "club": "After-School Sweets Club"
+  },
+  "kei_(blue_archive)": {
+    "char_name": "Kei Tendō",
+    "school": "Millennium",
+    "club": "Super Phenomenon Task Force"
+  },
+  "kikyou_(blue_archive)": {
+    "char_name": "Kikyou Kiryuu",
+    "school": "Hyakkiyako",
+    "club": "Hyakkaryouran"
+  },
+  "kirara_(blue_archive)": {
+    "char_name": "Kirara Yozakura",
+    "school": "Gehenna",
+    "club": "Shiny Sparkle Society"
+  },
+  "kisaki_(blue_archive)": {
+    "char_name": "Kisaki Ryūge",
+    "school": "Shanhaijing",
+    "club": "Genryumon"
+  },
+  "koharu_(blue_archive)": {
+    "char_name": "Koharu Shimoe",
+    "school": "Trinity",
+    "club": "Make-Up Work Club"
+  },
+  "kokona_(blue_archive)": {
+    "char_name": "Kokona Sunohara",
+    "school": "Shanhaijing",
+    "club": "Plum Blossom Garden"
+  },
+  "koyuki_(blue_archive)": {
+    "char_name": "Koyuki Kurosaki",
+    "school": "Millennium",
+    "club": "Seminar"
+  },
+  "maki_(blue_archive)": {
+    "char_name": "Maki Konuri",
+    "school": "Millennium",
+    "club": "Veritas"
+  },
+  "mari_(blue_archive)": {
+    "char_name": "Mari Iochi",
+    "school": "Trinity",
+    "club": "The Sisterhood"
+  },
+  "midori_(blue_archive)": {
+    "char_name": "Midori Saiba",
+    "school": "Millennium",
+    "club": "Game Development Club"
+  },
+  "mika_(blue_archive)": {
+    "char_name": "Mika Misono",
+    "school": "Trinity",
+    "club": "Tea Party"
+  },
+  "misaki_(blue_archive)": {
+    "char_name": "Misaki Imashino",
+    "school": "Arius",
+    "club": "Arius Squad"
+  },
+  "miyako_(blue_archive)": {
+    "char_name": "Miyako Tsukiyuki",
+    "school": "SRT",
+    "club": "RABBIT Platoon"
+  },
+  "miyo_(blue_archive)": {
+    "char_name": "Miyo Sakurai",
+    "school": "Wildhunt",
+    "club": "Free Trade Cartel"
+  },
+  "miyu_(blue_archive)": {
+    "char_name": "Miyu Kasumizawa",
+    "school": "SRT",
+    "club": "RABBIT Platoon"
+  },
+  "moe_(blue_archive)": {
+    "char_name": "Moe Kazekura",
+    "school": "SRT",
+    "club": "RABBIT Platoon"
+  },
+  "momoi_(blue_archive)": {
+    "char_name": "Momoi Saiba",
+    "school": "Millennium",
+    "club": "Game Development Club"
+  },
+  "mutsuki_(blue_archive)": {
+    "char_name": "Mutsuki Asagi",
+    "school": "Gehenna",
+    "club": "Problem Solver 68"
+  },
+  "nagisa_(blue_archive)": {
+    "char_name": "Nagisa Kirifuji",
+    "school": "Trinity",
+    "club": "Tea Party"
+  },
+  "natsu_(blue_archive)": {
+    "char_name": "Natsu Yutori",
+    "school": "Trinity",
+    "club": "After-School Sweets Club"
+  },
+  "neru_(blue_archive)": {
+    "char_name": "Neru Mikamo",
+    "school": "Millennium",
+    "club": "Cleaning & Clearing"
+  },
+  "noa_(blue_archive)": {
+    "char_name": "Noa Ushio",
+    "school": "Millennium",
+    "club": "Seminar"
+  },
+  "nonomi_(blue_archive)": {
+    "char_name": "Nonomi Izayoi",
+    "school": "Abydos",
+    "club": "Foreclosure Task Force"
+  },
+  "nozomi_(blue_archive)": {
+    "char_name": "Nozomi Tachibana",
+    "school": "Highlander",
+    "club": "CCC"
+  },
+  "others": {
+    "char_name": "Others",
+    "school": null,
+    "club": null
+  },
+  "plana_(blue_archive)": {
+    "char_name": "Plana",
+    "school": "Schale",
+    "club": null
+  },
+  "professor_niyaniya_(blue_archive)": {
+    "char_name": "Professor Smug",
+    "school": null,
+    "club": null
+  },
+  "reisa_(blue_archive)": {
+    "char_name": "Reisa Uzawa",
+    "school": "Trinity",
+    "club": "Trinity's Vigilante Crew"
+  },
+  "rio_(blue_archive)": {
+    "char_name": "Rio Tsukatsuki",
+    "school": "Millennium",
+    "club": "Seminar"
+  },
+  "saki_(blue_archive)": {
+    "char_name": "Saki Sorai",
+    "school": "SRT",
+    "club": "RABBIT Platoon"
+  },
+  "sakurako_(blue_archive)": {
+    "char_name": "Sakurako Utazumi",
+    "school": "Trinity",
+    "club": "The Sisterhood"
+  },
+  "saori_(blue_archive)": {
+    "char_name": "Saori Jomae",
+    "school": "Arius",
+    "club": "Arius Squad"
+  },
+  "satsuki_(blue_archive)": {
+    "char_name": "Satsuki Kyōgoku",
+    "school": "Gehenna",
+    "club": "Pandemonium Society"
+  },
+  "seia_(blue_archive)": {
+    "char_name": "Seia Yurizono",
+    "school": "Trinity",
+    "club": "Tea Party"
+  },
+  "serika_(blue_archive)": {
+    "char_name": "Serika Kuromi",
+    "school": "Abydos",
+    "club": "Foreclosure Task Force"
+  },
+  "serina_(blue_archive)": {
+    "char_name": "Serina Sumi",
+    "school": "Trinity",
+    "club": "Rescue Knights"
+  },
+  "shigure_(blue_archive)": {
+    "char_name": "Shigure Mayoi",
+    "school": "Red Winter",
+    "club": "Class No. 227"
+  },
+  "shiroko_(blue_archive)": {
+    "char_name": "Shiroko Sunaookami",
+    "school": "Abydos",
+    "club": "Foreclosure Task Force"
+  },
+  "shiroko_terror_(blue_archive)": {
+    "char_name": "Shiroko＊Terror Sunaookami",
+    "school": "Abydos",
+    "club": "Abydos Student Council"
+  },
+  "shun_(blue_archive)": {
+    "char_name": "Shun Sunohara",
+    "school": "Shanhaijing",
+    "club": "Plum Blossom Garden"
+  },
+  "toki_(blue_archive)": {
+    "char_name": "Toki Asuma",
+    "school": "Millennium",
+    "club": "Cleaning & Clearing"
+  },
+  "tsubaki_(blue_archive)": {
+    "char_name": "Tsubaki Kasuga",
+    "school": "Hyakkiyako",
+    "club": "Inner Discipline Club"
+  },
+  "tsurugi_(blue_archive)": {
+    "char_name": "Tsurugi Kenzaki",
+    "school": "Trinity",
+    "club": "Justice Task Force"
+  },
+  "ui_(blue_archive)": {
+    "char_name": "Ui Kozeki",
+    "school": "Trinity",
+    "club": "Library Committee"
+  },
+  "wakamo_(blue_archive)": {
+    "char_name": "Wakamo Kosaka",
+    "school": "Hyakkiyako",
+    "club": "no club"
+  },
+  "yoshimi_(blue_archive)": {
+    "char_name": "Yoshimi Ibaragi",
+    "school": "Trinity",
+    "club": "After-School Sweets Club"
+  },
+  "yuuka_(blue_archive)": {
+    "char_name": "Yuuka Hayase",
+    "school": "Millennium",
+    "club": "Seminar"
+  },
+  "yuzu_(blue_archive)": {
+    "char_name": "Yuzu Hanaoka",
+    "school": "Millennium",
+    "club": "Game Development Club"
+  }
+}
