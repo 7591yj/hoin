@@ -2,8 +2,9 @@ import { runCategorize } from "../cli.ts";
 import { resolveAllowedPath } from "../allowed-paths.ts";
 import { session } from "../session.ts";
 import { jsonResponse } from "../router.ts";
-import { access, mkdir, rename } from "node:fs/promises";
+import { access, mkdir } from "node:fs/promises";
 import path from "node:path";
+import { moveFile } from "../file-move.ts";
 
 interface MoveEntry {
   from: string;
@@ -95,36 +96,6 @@ function isWithinDirectory(candidate: string, dir: string): boolean {
   return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }
 
-function filterOutputBySelectedFiles(
-  output: CategorizeOutput,
-  selectedFiles: Set<string>,
-): CategorizeOutput {
-  const moves = output.moves.filter((move) => selectedFiles.has(move.from));
-  const skipped = output.skipped.filter((entry) => selectedFiles.has(entry.file));
-  const alreadyCategorized = output.already_categorized.filter((entry) =>
-    selectedFiles.has(entry.file),
-  );
-  const failed = output.failed.filter((entry) => selectedFiles.has(entry.file));
-
-  return {
-    dry_run: output.dry_run,
-    moves,
-    skipped,
-    already_categorized: alreadyCategorized,
-    failed,
-    summary: {
-      scanned: selectedFiles.size,
-      image_candidates: selectedFiles.size,
-      moves: moves.length,
-      routed_to_others: moves.filter((move) => move.to.includes(`${path.sep}Others${path.sep}`))
-        .length,
-      low_confidence_skipped: skipped.filter((entry) => entry.reason === "low_confidence").length,
-      already_categorized: alreadyCategorized.length,
-      failed: failed.length,
-    },
-  };
-}
-
 export async function handleCategorizePreview(req: Request, _url: URL): Promise<Response> {
   const body = await parseBody(req);
   const validated = validateBody(body);
@@ -154,11 +125,25 @@ export async function handleCategorizePreview(req: Request, _url: URL): Promise<
       startedAt: Date.now(),
       updatedAt: Date.now(),
     };
-    const output = await runCategorize({ ...validated, modelDir, targetDir, dryRun: true });
-    const filtered =
-      selectedFiles.length === 0
-        ? output
-        : filterOutputBySelectedFiles(output, new Set(selectedFiles));
+    const output = await runCategorize({
+      ...validated,
+      modelDir,
+      targetDir,
+      dryRun: true,
+      selectedFiles,
+      onProgress: (event) => {
+        session.categorizeProgress = {
+          phase: "preview",
+          state: "running",
+          completed: event.completed,
+          total: event.total,
+          message: `Categorizing ${event.completed}/${event.total} image(s)…`,
+          startedAt: session.categorizeProgress.startedAt,
+          updatedAt: Date.now(),
+        };
+      },
+    });
+    const filtered = output;
     session.categorizeProgress = {
       phase: "preview",
       state: "done",
@@ -225,7 +210,7 @@ export async function handleCategorizeApply(req: Request, _url: URL): Promise<Re
 
       try {
         await mkdir(path.dirname(to), { recursive: true });
-        await rename(from, to);
+        await moveFile(from, to);
         appliedMoves.push({ ...move, from, to });
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);

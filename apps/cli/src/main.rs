@@ -30,6 +30,11 @@ fn main() -> Result<()> {
             ja: false,
             min_confidence: cli::DEFAULT_MIN_CONFIDENCE,
             json: false,
+            file: vec![],
+            progress_json: false,
+            fail_on_failed: false,
+            fail_on_skipped: false,
+            fail_on_empty: false,
         }),
     }
 }

@@ -40,4 +40,18 @@ pub(crate) struct CategorizeArgs {
     pub(crate) min_confidence: f32,
     #[arg(long, help = "Output results as JSON instead of human-readable text")]
     pub(crate) json: bool,
+    #[arg(
+        long,
+        value_name = "PATH",
+        help = "Categorize a specific file instead of walking the whole directory; may be repeated"
+    )]
+    pub(crate) file: Vec<PathBuf>,
+    #[arg(long, help = "Emit newline-delimited JSON progress events to stderr")]
+    pub(crate) progress_json: bool,
+    #[arg(long, help = "Exit with an error when any file fails to process")]
+    pub(crate) fail_on_failed: bool,
+    #[arg(long, help = "Exit with an error when any file is skipped")]
+    pub(crate) fail_on_skipped: bool,
+    #[arg(long, help = "Exit with an error when no image files are found")]
+    pub(crate) fail_on_empty: bool,
 }

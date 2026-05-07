@@ -1,4 +1,5 @@
 use std::{
+    cell::Cell,
     fs,
     path::{Path, PathBuf},
 };
@@ -60,6 +61,41 @@ struct JsonSummary {
 }
 
 #[derive(Debug, Serialize)]
+struct ProgressEvent {
+    event: &'static str,
+    completed: usize,
+    total: usize,
+    file: PathBuf,
+}
+
+struct ProgressOnDrop<'a> {
+    enabled: bool,
+    completed: &'a Cell<usize>,
+    total: usize,
+    file: PathBuf,
+}
+
+impl Drop for ProgressOnDrop<'_> {
+    fn drop(&mut self) {
+        if !self.enabled {
+            return;
+        }
+
+        let completed = self.completed.get() + 1;
+        self.completed.set(completed);
+        let event = ProgressEvent {
+            event: "file_done",
+            completed,
+            total: self.total,
+            file: self.file.clone(),
+        };
+        if let Ok(line) = serde_json::to_string(&event) {
+            eprintln!("{line}");
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
 struct JsonOutput {
     dry_run: bool,
     moves: Vec<MoveEntry>,
@@ -82,7 +118,11 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
         .canonicalize()
         .with_context(|| format!("resolve root path {}", args.path.display()))?;
     let mut runtime = ModelRuntime::load(args.model_dir.as_deref())?;
-    let files = discover_files(&root)?;
+    let files = if args.file.is_empty() {
+        discover_files(&root)?
+    } else {
+        discover_explicit_files(&root, &args.file)?
+    };
     let routing_preferences = RoutingPreferences {
         name_locale: if args.ja {
             NameLocale::Ja
@@ -113,6 +153,9 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
         } else {
             println!("No files found under {}", root.display());
         }
+        if args.fail_on_empty {
+            bail!("no image files found under {}", root.display());
+        }
         return Ok(());
     }
 
@@ -127,7 +170,17 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
     let mut json_already_categorized: Vec<AlreadyCategorizedEntry> = vec![];
     let mut json_failed: Vec<FailedEntry> = vec![];
 
+    let completed = Cell::new(0);
+    let total = files.len();
+
     for source in files {
+        let _progress = ProgressOnDrop {
+            enabled: args.progress_json,
+            completed: &completed,
+            total,
+            file: source.clone(),
+        };
+
         match runtime.classify_path(&source) {
             Ok(classification) => {
                 if classification.confidence < args.min_confidence {
@@ -279,7 +332,25 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
     } else {
         print_summary(&summary, args.dry_run);
     }
+
+    if let Some(message) = automation_failure_message(&summary, &args) {
+        bail!("{message}");
+    }
+
     Ok(())
+}
+
+fn automation_failure_message(summary: &Summary, args: &CategorizeArgs) -> Option<String> {
+    if args.fail_on_failed && summary.failed > 0 {
+        return Some(format!("{} file(s) failed to process", summary.failed));
+    }
+    if args.fail_on_skipped && summary.low_confidence_skipped > 0 {
+        return Some(format!(
+            "{} file(s) skipped due to low confidence",
+            summary.low_confidence_skipped
+        ));
+    }
+    None
 }
 
 fn print_summary(summary: &Summary, dry_run: bool) {
@@ -301,13 +372,56 @@ fn discover_files(root: &Path) -> Result<Vec<PathBuf>> {
 
     for entry in WalkDir::new(root).into_iter() {
         let entry = entry.with_context(|| format!("walk directory {}", root.display()))?;
-        if entry.file_type().is_file() && image::ImageFormat::from_path(entry.path()).is_ok() {
+        if is_image_file(entry.path()) {
             files.push(entry.into_path());
         }
     }
 
     files.sort();
     Ok(files)
+}
+
+fn discover_explicit_files(root: &Path, explicit_files: &[PathBuf]) -> Result<Vec<PathBuf>> {
+    let canonical_root = root
+        .canonicalize()
+        .with_context(|| format!("resolve root path {}", root.display()))?;
+    let mut files = Vec::new();
+
+    for explicit_file in explicit_files {
+        let candidate = if explicit_file.is_absolute() {
+            explicit_file.to_path_buf()
+        } else {
+            canonical_root.join(explicit_file)
+        };
+        let canonical = candidate
+            .canonicalize()
+            .with_context(|| format!("resolve explicit file {}", candidate.display()))?;
+
+        if !is_within_directory(&candidate, root)
+            && !is_within_directory(&canonical, &canonical_root)
+        {
+            bail!(
+                "explicit file {} is outside root {}",
+                canonical.display(),
+                canonical_root.display()
+            );
+        }
+        if canonical.is_file() && is_image_file(&canonical) {
+            files.push(canonical);
+        }
+    }
+
+    files.sort();
+    files.dedup();
+    Ok(files)
+}
+
+fn is_image_file(path: &Path) -> bool {
+    path.is_file() && image::ImageFormat::from_path(path).is_ok()
+}
+
+fn is_within_directory(candidate: &Path, dir: &Path) -> bool {
+    candidate == dir || candidate.starts_with(dir)
 }
 
 fn resolve_collision(destination: &Path) -> PathBuf {
@@ -344,19 +458,133 @@ fn move_file(source: &Path, destination: &Path) -> Result<()> {
         .context("destination has no parent directory")?;
     fs::create_dir_all(parent)
         .with_context(|| format!("create destination directory {}", parent.display()))?;
-    fs::rename(source, destination).with_context(|| {
+    match fs::rename(source, destination) {
+        Ok(()) => Ok(()),
+        Err(error) if is_cross_device_error(&error) => copy_then_unlink(source, destination),
+        Err(error) => Err(error).with_context(|| {
+            format!(
+                "move image from {} to {}",
+                source.display(),
+                destination.display()
+            )
+        }),
+    }
+}
+
+fn is_cross_device_error(error: &std::io::Error) -> bool {
+    matches!(error.raw_os_error(), Some(18) | Some(17))
+}
+
+fn copy_then_unlink(source: &Path, destination: &Path) -> Result<()> {
+    fs::copy(source, destination).with_context(|| {
         format!(
-            "move image from {} to {}",
+            "copy image from {} to {} after cross-filesystem rename failed",
             source.display(),
             destination.display()
         )
     })?;
+
+    fs::OpenOptions::new()
+        .write(true)
+        .open(destination)
+        .and_then(|file| file.sync_all())
+        .with_context(|| format!("sync copied image {}", destination.display()))?;
+
+    if let Some(parent) = destination.parent() {
+        sync_directory(parent);
+    }
+
+    fs::remove_file(source)
+        .with_context(|| format!("remove source image {} after copy", source.display()))?;
     Ok(())
+}
+
+fn sync_directory(directory: &Path) {
+    if let Ok(file) = fs::File::open(directory) {
+        let _ = file.sync_all();
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn discover_explicit_files_uses_only_explicit_images() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        let listed = root.join("listed.png");
+        let unlisted = root.join("unlisted.png");
+        let text = root.join("notes.txt");
+        fs::write(&listed, b"").unwrap();
+        fs::write(&unlisted, b"").unwrap();
+        fs::write(&text, b"not an image").unwrap();
+
+        let files = discover_explicit_files(
+            root,
+            &[listed.clone(), PathBuf::from("notes.txt"), listed.clone()],
+        )
+        .unwrap();
+
+        assert_eq!(files, vec![listed.canonicalize().unwrap()]);
+    }
+
+    #[test]
+    fn discover_explicit_files_rejects_files_outside_root() {
+        let temp = tempfile::tempdir().unwrap();
+        let outside = tempfile::NamedTempFile::new().unwrap();
+
+        let error =
+            discover_explicit_files(temp.path(), &[outside.path().to_path_buf()]).unwrap_err();
+
+        assert!(error.to_string().contains("outside root"));
+    }
+
+    fn automation_args() -> CategorizeArgs {
+        CategorizeArgs {
+            model_dir: None,
+            path: PathBuf::from("."),
+            dry_run: true,
+            ja: false,
+            min_confidence: 0.3,
+            json: true,
+            file: vec![],
+            progress_json: false,
+            fail_on_failed: false,
+            fail_on_skipped: false,
+            fail_on_empty: false,
+        }
+    }
+
+    #[test]
+    fn automation_failure_message_honors_failed_flag() {
+        let mut args = automation_args();
+        args.fail_on_failed = true;
+        let summary = Summary {
+            failed: 2,
+            ..Summary::default()
+        };
+
+        assert_eq!(
+            automation_failure_message(&summary, &args).as_deref(),
+            Some("2 file(s) failed to process")
+        );
+    }
+
+    #[test]
+    fn automation_failure_message_honors_skipped_flag() {
+        let mut args = automation_args();
+        args.fail_on_skipped = true;
+        let summary = Summary {
+            low_confidence_skipped: 1,
+            ..Summary::default()
+        };
+
+        assert_eq!(
+            automation_failure_message(&summary, &args).as_deref(),
+            Some("1 file(s) skipped due to low confidence")
+        );
+    }
 
     #[test]
     fn resolve_collision_adds_numeric_suffix() {
@@ -371,6 +599,20 @@ mod tests {
             collision,
             temp.path().join("JP/04/Amane Kanata/input-1.png")
         );
+    }
+
+    #[test]
+    fn copy_then_unlink_places_image_in_destination() {
+        let temp = tempfile::tempdir().unwrap();
+        let source = temp.path().join("input.png");
+        fs::write(&source, b"image").unwrap();
+        let destination = temp.path().join("JP/04/Amane Kanata/input.png");
+        fs::create_dir_all(destination.parent().unwrap()).unwrap();
+
+        copy_then_unlink(&source, &destination).unwrap();
+
+        assert!(!source.exists());
+        assert_eq!(fs::read(&destination).unwrap(), b"image");
     }
 
     #[test]

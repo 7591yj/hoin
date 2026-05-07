@@ -1,5 +1,6 @@
-import { rename, mkdir } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import path from "node:path";
+import { moveFile } from "../file-move.ts";
 import { session } from "../session.ts";
 import { jsonResponse } from "../router.ts";
 
@@ -15,7 +16,7 @@ export async function handleRevert(_req: Request, _url: URL): Promise<Response> 
     const destDir = path.dirname(move.from);
     try {
       await mkdir(destDir, { recursive: true });
-      await rename(move.to, move.from);
+      await moveFile(move.to, move.from);
       reverted++;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
