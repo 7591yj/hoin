@@ -80,6 +80,23 @@ header .badge {
   color: var(--muted);
   border: 1px solid var(--border);
   background: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-help kbd {
+  min-width: 18px;
+  padding: 1px 5px;
+  border: 1px solid var(--border-light);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .header-help:hover,
