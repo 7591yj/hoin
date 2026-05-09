@@ -14,7 +14,9 @@ use crate::routing::NameLocale;
 
 const HOLO_HOIN_CLASS_MAP_JSON: &str = include_str!("holo_hoin_class_map_en.json");
 const HOLO_HOIN_CLASS_MAP_JA_JSON: &str = include_str!("holo_hoin_class_map_ja.json");
-// TODO: add auto guard for future edits or get info straight from the model
+#[cfg(test)]
+const HOLO_HOIN_MODEL_CLASS_MAP_JSON: &str =
+    include_str!("../../../../../models/holo-hoin/class_map.json");
 const HOLO_HOIN_OUTPUT_CLASS_KEYS: &[&str] = &[
     "airani_iofifteen",
     "akai_haato",
@@ -296,6 +298,39 @@ mod tests {
     #[test]
     fn output_class_keys_match_known_index() {
         assert_eq!(output_class_keys().get(3).copied(), Some("amane_kanata"));
+    }
+
+    #[test]
+    fn output_class_keys_match_model_class_map() {
+        let model_class_map: HashMap<String, String> =
+            serde_json::from_str(HOLO_HOIN_MODEL_CLASS_MAP_JSON).unwrap();
+        let model_class_keys = (0..model_class_map.len())
+            .map(|index| {
+                model_class_map
+                    .get(&index.to_string())
+                    .unwrap_or_else(|| panic!("missing model class map index {index}"))
+                    .as_str()
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(output_class_keys(), model_class_keys.as_slice());
+    }
+
+    #[test]
+    fn output_class_keys_are_present_in_bundled_metadata_maps() {
+        let english_class_map = holo_hoin_class_map();
+        let japanese_class_map = holo_hoin_class_map_ja();
+
+        for class_key in output_class_keys() {
+            assert!(
+                english_class_map.contains_key(*class_key),
+                "missing English metadata for output class key {class_key}"
+            );
+            assert!(
+                japanese_class_map.contains_key(*class_key),
+                "missing Japanese metadata for output class key {class_key}"
+            );
+        }
     }
 
     #[test]
