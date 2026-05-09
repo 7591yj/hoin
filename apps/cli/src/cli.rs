@@ -29,12 +29,16 @@ pub(crate) enum Command {
 pub(crate) struct PlanArgs {
     #[arg(value_name = "PLAN_JSON")]
     pub(crate) plan: PathBuf,
+    #[arg(long, help = "Emit newline-delimited JSON progress events to stderr")]
+    pub(crate) progress_json: bool,
 }
 
 #[derive(Debug, Clone, Args)]
 pub(crate) struct OperationArgs {
     #[arg(value_name = "OPERATION_JSON")]
     pub(crate) operation: PathBuf,
+    #[arg(long, help = "Emit newline-delimited JSON progress events to stderr")]
+    pub(crate) progress_json: bool,
 }
 
 #[derive(Debug, Clone, Args)]

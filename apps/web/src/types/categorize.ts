@@ -43,7 +43,7 @@ export interface CategorizeJsonOutput {
 export type CategorizeResult = CategorizeJsonOutput;
 
 export interface CategorizeProgressEvent {
-  event: "file_done";
+  event: "file_done" | "move_done";
   completed: number;
   total: number;
   file: string;
@@ -54,7 +54,7 @@ export interface OperationJsonOutput {
 }
 
 export interface CategorizeProgress {
-  phase: "preview" | "apply";
+  phase: "preview" | "apply" | "revert";
   state: "idle" | "running" | "done" | "error";
   completed: number;
   total: number | null;

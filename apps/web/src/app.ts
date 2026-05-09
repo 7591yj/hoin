@@ -79,11 +79,11 @@ function renderBottomProgress(progress: CategorizeProgress | null): void {
   const hasTotal = typeof total === "number" && total > 0;
   const percent = hasTotal ? Math.min(100, (progress.completed / total) * 100) : 0;
 
+  const progressLabel =
+    progress.phase === "preview" ? "Preview" : progress.phase === "apply" ? "Apply" : "Revert";
   statusProgressLabel.textContent = hasTotal
-    ? `${progress.phase === "preview" ? "Preview" : "Apply"} ${progress.completed}/${total}`
-    : progress.phase === "preview"
-      ? "Preview in progress"
-      : "Apply in progress";
+    ? `${progressLabel} ${progress.completed}/${total}`
+    : `${progressLabel} in progress`;
   statusProgressTrack.classList.toggle("indeterminate", !hasTotal && progress.state === "running");
   statusProgressTrack.setAttribute("aria-valuenow", hasTotal ? String(Math.round(percent)) : "0");
   statusProgressFill.style.width = hasTotal ? `${percent}%` : "0%";
@@ -479,6 +479,7 @@ revertBtn.addEventListener("click", async () => {
   if (!confirm("Revert the last categorize operation?")) return;
   setStatus("Reverting…", true);
   revertBtn.disabled = true;
+  startProgressPolling();
   try {
     const { reverted } = await apiFetch<{ reverted: number }>("/api/revert", {
       method: "POST",

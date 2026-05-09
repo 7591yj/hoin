@@ -21,8 +21,8 @@ fn main() -> Result<()> {
 
     match cli.command {
         Some(Command::Categorize(args)) => categorize(args),
-        Some(Command::Apply(args)) => apply_plan(&args.plan),
-        Some(Command::Revert(args)) => revert_operation(&args.operation),
+        Some(Command::Apply(args)) => apply_plan(&args.plan, args.progress_json),
+        Some(Command::Revert(args)) => revert_operation(&args.operation, args.progress_json),
         Some(Command::Help) => print_help_overview(),
         Some(Command::ModelInfo { model_dir }) => print_model_info(model_dir.as_deref()),
         None => categorize(CategorizeArgs {

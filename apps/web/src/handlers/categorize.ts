@@ -3,6 +3,7 @@ import { allowedPathErrorStatus, resolveAllowedPath } from "../allowed-paths.ts"
 import { session } from "../session.ts";
 import { jsonResponse } from "../router.ts";
 import type { CategorizeJsonOutput, MoveEntry } from "../types/categorize.ts";
+import { realpath } from "node:fs/promises";
 import path from "node:path";
 
 interface CategorizeBody {
@@ -110,30 +111,50 @@ function categorizeOutputForMoves(moves: MoveEntry[], dryRun: boolean): Categori
   };
 }
 
+async function nearestExistingAncestor(candidate: string): Promise<string> {
+  let current = candidate;
+  while (true) {
+    try {
+      return await realpath(current);
+    } catch {
+      const parent = path.dirname(current);
+      if (parent === current) throw new Error(`no existing ancestor for path: ${candidate}`);
+      current = parent;
+    }
+  }
+}
+
 async function resolveMove(move: MoveEntry, targetDir: string): Promise<MoveEntry> {
   const from = await resolveAllowedPath(move.from);
   const to = path.resolve(move.to);
+  const destinationAncestor = await nearestExistingAncestor(path.dirname(to));
 
   if (!isWithinDirectory(from, targetDir)) {
     throw new Error(`move source is outside target directory: ${from}`);
   }
-  if (!isWithinDirectory(to, targetDir)) {
+  if (!isWithinDirectory(to, targetDir) || !isWithinDirectory(destinationAncestor, targetDir)) {
     throw new Error(`move destination is outside target directory: ${to}`);
   }
 
   return { ...move, from, to };
 }
 
-function setApplyProgress(completed: number, total: number, state: "running" | "done" = "running") {
+function setApplyProgress(
+  completed: number,
+  total: number | null,
+  state: "running" | "done" = "running",
+  message?: string,
+) {
   session.categorizeProgress = {
     phase: "apply",
     state,
     completed,
     total,
     message:
-      state === "done"
+      message ??
+      (state === "done"
         ? `Applied ${completed} move(s).`
-        : `Applying ${completed}/${total} move(s)…`,
+        : `Applying ${completed}/${total ?? "?"} move(s)…`),
     startedAt: session.categorizeProgress.startedAt ?? Date.now(),
     updatedAt: Date.now(),
   };
@@ -219,14 +240,16 @@ export async function handleCategorizeApply(req: Request, _url: URL): Promise<Re
   try {
     const targetDir = await resolveAllowedPath(validated.targetDir);
     const resolvedMoves: MoveEntry[] = [];
-    setApplyProgress(0, validated.moves.length);
+    setApplyProgress(0, null, "running", "Validating move plan…");
 
     for (const move of validated.moves) {
       resolvedMoves.push(await resolveMove(move, targetDir));
-      setApplyProgress(resolvedMoves.length, validated.moves.length);
     }
 
-    const operation = await runApply(categorizeOutputForMoves(resolvedMoves, true));
+    setApplyProgress(0, resolvedMoves.length);
+    const operation = await runApply(categorizeOutputForMoves(resolvedMoves, true), (event) => {
+      setApplyProgress(event.completed, event.total);
+    });
     const appliedMoves = operation.moves;
     const output = categorizeOutputForMoves(appliedMoves, false);
 

@@ -17,9 +17,7 @@ pub(crate) use operations::{apply_plan, revert_operation};
 
 use discovery::{discover_explicit_files, discover_files};
 use fs_ops::move_file;
-use types::{
-    AlreadyCategorizedEntry, FailedEntry, JsonOutput, MoveEntry, SkippedEntry, Summary,
-};
+use types::{AlreadyCategorizedEntry, FailedEntry, JsonOutput, MoveEntry, SkippedEntry, Summary};
 
 #[derive(Debug, Serialize)]
 struct ProgressEvent {
@@ -525,12 +523,12 @@ mod tests {
         let plan = plan_with(vec![move_entry(&source, &destination)]);
         write_json(&plan_path, &plan);
 
-        apply_plan(&plan_path).unwrap();
+        apply_plan(&plan_path, false).unwrap();
         assert!(!source.exists());
         assert_eq!(fs::read(&destination).unwrap(), b"image");
 
         write_json(&operation_path, &OperationOutput { moves: plan.moves });
-        revert_operation(&operation_path).unwrap();
+        revert_operation(&operation_path, false).unwrap();
         assert_eq!(fs::read(&source).unwrap(), b"image");
         assert!(!destination.exists());
     }
@@ -555,7 +553,7 @@ mod tests {
             ]),
         );
 
-        let error = apply_plan(&plan_path).unwrap_err();
+        let error = apply_plan(&plan_path, false).unwrap_err();
 
         assert!(error.to_string().contains("destination already exists"));
         assert_eq!(fs::read(&source1).unwrap(), b"one");
@@ -584,7 +582,7 @@ mod tests {
             },
         );
 
-        let error = revert_operation(&operation_path).unwrap_err();
+        let error = revert_operation(&operation_path, false).unwrap_err();
 
         assert!(error.to_string().contains("original path already exists"));
         assert_eq!(fs::read(&destination2).unwrap(), b"two");

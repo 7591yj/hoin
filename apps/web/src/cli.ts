@@ -43,15 +43,27 @@ export interface CategorizeOptions {
   onProgress?: (event: CategorizeProgressEvent) => void;
 }
 
-export async function runApply(plan: CategorizeJsonOutput): Promise<OperationJsonOutput> {
-  return runJsonFileCommand<CategorizeJsonOutput, OperationJsonOutput>("apply", "plan", plan);
+export async function runApply(
+  plan: CategorizeJsonOutput,
+  onProgress?: (event: CategorizeProgressEvent) => void,
+): Promise<OperationJsonOutput> {
+  return runJsonFileCommand<CategorizeJsonOutput, OperationJsonOutput>(
+    "apply",
+    "plan",
+    plan,
+    onProgress,
+  );
 }
 
-export async function runRevert(operation: OperationJsonOutput): Promise<{ reverted: number }> {
+export async function runRevert(
+  operation: OperationJsonOutput,
+  onProgress?: (event: CategorizeProgressEvent) => void,
+): Promise<{ reverted: number }> {
   return runJsonFileCommand<OperationJsonOutput, { reverted: number }>(
     "revert",
     "operation",
     operation,
+    onProgress,
   );
 }
 
@@ -59,12 +71,14 @@ async function runJsonFileCommand<TInput, TOutput>(
   command: "apply" | "revert",
   fileStem: string,
   payload: TInput,
+  onProgress?: (event: CategorizeProgressEvent) => void,
 ): Promise<TOutput> {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), `hoin-${command}-`));
   const jsonPath = path.join(tempDir, `${fileStem}.json`);
   try {
     await writeFile(jsonPath, JSON.stringify(payload), "utf8");
-    const { stdout } = await runHoin([command, jsonPath]);
+    const args = [command, ...(onProgress ? ["--progress-json"] : []), jsonPath];
+    const { stdout } = await runHoin(args, (stderr) => readStderr(stderr, onProgress));
     return JSON.parse(stdout) as TOutput;
   } finally {
     await rm(tempDir, { recursive: true, force: true });
@@ -152,13 +166,13 @@ function emitProgressEvent(
   try {
     const event = JSON.parse(line) as Partial<CategorizeProgressEvent>;
     if (
-      event.event === "file_done" &&
+      (event.event === "file_done" || event.event === "move_done") &&
       typeof event.completed === "number" &&
       typeof event.total === "number" &&
       typeof event.file === "string"
     ) {
       onProgress({
-        event: "file_done",
+        event: event.event,
         completed: event.completed,
         total: event.total,
         file: event.file,
