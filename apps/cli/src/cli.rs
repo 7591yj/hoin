@@ -66,7 +66,10 @@ pub(crate) struct CategorizeArgs {
     pub(crate) file: Vec<PathBuf>,
     #[arg(long, help = "Emit newline-delimited JSON progress events to stderr")]
     pub(crate) progress_json: bool,
-    #[arg(long, help = "Exit with an error when any file fails to process")]
+    #[arg(
+        long,
+        help = "Exit with an error when any file fails during dry-run; non-dry-run fails by default"
+    )]
     pub(crate) fail_on_failed: bool,
     #[arg(long, help = "Exit with an error when any file is skipped")]
     pub(crate) fail_on_skipped: bool,

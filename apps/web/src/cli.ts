@@ -1,37 +1,11 @@
-import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import type {
   CategorizeJsonOutput,
   CategorizeProgressEvent,
   OperationJsonOutput,
 } from "./types/categorize.ts";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const HOIN_BINARY = process.platform === "win32" ? "hoin.exe" : "hoin";
-
-async function resolveBin(): Promise<string> {
-  if (process.env.HOIN_BIN) return process.env.HOIN_BIN;
-
-  const candidates = [
-    path.resolve(process.cwd(), HOIN_BINARY),
-    path.resolve(__dirname, "../../..", "target/debug/hoin"),
-    path.resolve(__dirname, "../../..", "target/release/hoin"),
-    path.resolve(path.dirname(process.execPath), HOIN_BINARY),
-  ];
-
-  for (const candidate of candidates) {
-    try {
-      await access(candidate);
-      return candidate;
-    } catch {
-      // Try the next candidate.
-    }
-  }
-
-  return HOIN_BINARY;
-}
+import { runJsonFileCommand, parseJson } from "./cli/json-command.ts";
+import { runHoin } from "./cli/process.ts";
+import { readStderr } from "./cli/progress.ts";
 
 export interface CategorizeOptions {
   modelDir: string;
@@ -67,40 +41,6 @@ export async function runRevert(
   );
 }
 
-async function runJsonFileCommand<TInput, TOutput>(
-  command: "apply" | "revert",
-  fileStem: string,
-  payload: TInput,
-  onProgress?: (event: CategorizeProgressEvent) => void,
-): Promise<TOutput> {
-  const tempDir = await mkdtemp(path.join(os.tmpdir(), `hoin-${command}-`));
-  const jsonPath = path.join(tempDir, `${fileStem}.json`);
-  try {
-    await writeFile(jsonPath, JSON.stringify(payload), "utf8");
-    const args = [command, ...(onProgress ? ["--progress-json"] : []), jsonPath];
-    const { stdout } = await runHoin(args, (stderr) => readStderr(stderr, onProgress));
-    return parseJson<TOutput>(stdout, `hoin ${command} JSON output`);
-  } finally {
-    await rm(tempDir, { recursive: true, force: true });
-  }
-}
-
-async function runHoin(
-  args: string[],
-  readStderrStream: (stderr: ReadableStream<Uint8Array>) => Promise<string> = (stderr) =>
-    new Response(stderr).text(),
-): Promise<{ stdout: string; stderr: string }> {
-  const bin = await resolveBin();
-  const proc = Bun.spawn([bin, ...args], { stdout: "pipe", stderr: "pipe" });
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(proc.stdout).text(),
-    readStderrStream(proc.stderr),
-    proc.exited,
-  ]);
-  if (exitCode !== 0) throw new Error(`hoin exited with code ${exitCode}: ${stderr}`);
-  return { stdout, stderr };
-}
-
 export async function runCategorize(opts: CategorizeOptions): Promise<CategorizeJsonOutput> {
   const selectedFiles = opts.selectedFiles ?? [];
   const args = [
@@ -117,75 +57,5 @@ export async function runCategorize(opts: CategorizeOptions): Promise<Categorize
   ];
 
   const { stdout } = await runHoin(args, (stderr) => readStderr(stderr, opts.onProgress));
-
   return parseJson<CategorizeJsonOutput>(stdout, "hoin categorize JSON output");
-}
-
-function parseJson<T>(text: string, description: string): T {
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    const snippet = text.length > 2000 ? `${text.slice(0, 2000)}…` : text;
-    throw new Error(`Failed to parse ${description}: ${snippet}`);
-  }
-}
-
-async function readStderr(
-  stderr: ReadableStream<Uint8Array>,
-  onProgress?: (event: CategorizeProgressEvent) => void,
-): Promise<string> {
-  if (!onProgress) return new Response(stderr).text();
-
-  const reader = stderr.getReader();
-  const decoder = new TextDecoder();
-  let stderrText = "";
-  let bufferedLine = "";
-
-  const handleLine = (line: string): void => {
-    if (!emitProgressEvent(line, onProgress)) stderrText += `${line}\n`;
-  };
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    bufferedLine += decoder.decode(value, { stream: true });
-
-    const lines = bufferedLine.split(/\r?\n/);
-    bufferedLine = lines.pop() ?? "";
-    for (const line of lines) {
-      handleLine(line);
-    }
-  }
-
-  bufferedLine += decoder.decode();
-  if (bufferedLine) handleLine(bufferedLine);
-
-  return stderrText;
-}
-
-function emitProgressEvent(
-  line: string,
-  onProgress: (event: CategorizeProgressEvent) => void,
-): boolean {
-  try {
-    const event = JSON.parse(line) as Partial<CategorizeProgressEvent>;
-    if (
-      (event.event === "file_done" || event.event === "move_done") &&
-      typeof event.completed === "number" &&
-      typeof event.total === "number" &&
-      typeof event.file === "string"
-    ) {
-      onProgress({
-        event: event.event,
-        completed: event.completed,
-        total: event.total,
-        file: event.file,
-      });
-      return true;
-    }
-  } catch {
-    // Keep non-JSON stderr for error reporting.
-  }
-  return false;
 }

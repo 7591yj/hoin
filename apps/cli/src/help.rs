@@ -17,7 +17,7 @@ Options for categorize:
   --min-confidence <FLOAT>   Skip results below the threshold (default: 0.3)
   --file <PATH>              Classify a specific file; may be repeated
   --progress-json            Emit JSON progress events to stderr
-  --fail-on-failed           Exit non-zero if any file fails to process
+  --fail-on-failed           Exit non-zero if any file fails during dry-run (non-dry-run fails by default)
   --fail-on-skipped          Exit non-zero if any file is skipped due to low confidence
   --fail-on-empty            Exit non-zero if no image files are found
 
