@@ -1,29 +1,7 @@
 import { dirname, basename, parentDir } from "./path-utils.ts";
+import type { CategorizeProgress, CategorizeResult, MoveEntry } from "./types/categorize.ts";
 
 //  Types
-interface MoveEntry {
-  from: string;
-  to: string;
-  class_key: string;
-  confidence: number;
-}
-
-interface CategorizeResult {
-  dry_run: boolean;
-  moves: MoveEntry[];
-  skipped: Array<{ file: string; reason: string; confidence?: number }>;
-  already_categorized: Array<{ file: string }>;
-  failed: Array<{ file: string; reason: string }>;
-  summary: {
-    scanned: number;
-    image_candidates: number;
-    moves: number;
-    routed_to_others: number;
-    low_confidence_skipped: number;
-    already_categorized: number;
-    failed: number;
-  };
-}
 
 interface BrowseEntry {
   name: string;
@@ -35,16 +13,6 @@ interface BrowseEntry {
 interface ModelEntry {
   name: string;
   path: string;
-}
-
-interface CategorizeProgress {
-  phase: "preview" | "apply";
-  state: "idle" | "running" | "done" | "error";
-  completed: number;
-  total: number | null;
-  message: string;
-  startedAt: number | null;
-  updatedAt: number | null;
 }
 
 const PICKER_ROOTS_VIEW = "__allowed_roots__";

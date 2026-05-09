@@ -1,32 +1,9 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { access, mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { CategorizeResult } from "./types/categorize.ts";
 import { handleRequest } from "./web.ts";
 import { workspaceVersion } from "./version.ts";
-
-interface MoveEntry {
-  from: string;
-  to: string;
-  class_key: string;
-  confidence: number;
-}
-
-interface CategorizeResult {
-  dry_run: boolean;
-  moves: MoveEntry[];
-  skipped: Array<{ file: string; reason: string; confidence?: number }>;
-  already_categorized: Array<{ file: string }>;
-  failed: Array<{ file: string; reason: string }>;
-  summary: {
-    scanned: number;
-    image_candidates: number;
-    moves: number;
-    routed_to_others: number;
-    low_confidence_skipped: number;
-    already_categorized: number;
-    failed: number;
-  };
-}
 
 const repoRoot = path.resolve(import.meta.dir, "../../..");
 const smokeDir = path.join(repoRoot, ".tmp", "hoin-smoke");

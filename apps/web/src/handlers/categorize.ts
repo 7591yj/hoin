@@ -2,31 +2,8 @@ import { runApply, runCategorize } from "../cli.ts";
 import { resolveAllowedPath } from "../allowed-paths.ts";
 import { session } from "../session.ts";
 import { jsonResponse } from "../router.ts";
+import type { CategorizeJsonOutput, MoveEntry } from "../types/categorize.ts";
 import path from "node:path";
-
-interface MoveEntry {
-  from: string;
-  to: string;
-  class_key: string;
-  confidence: number;
-}
-
-interface CategorizeOutput {
-  dry_run: boolean;
-  moves: MoveEntry[];
-  skipped: Array<{ file: string; reason: string; confidence?: number }>;
-  already_categorized: Array<{ file: string }>;
-  failed: Array<{ file: string; reason: string }>;
-  summary: {
-    scanned: number;
-    image_candidates: number;
-    moves: number;
-    routed_to_others: number;
-    low_confidence_skipped: number;
-    already_categorized: number;
-    failed: number;
-  };
-}
 
 interface CategorizeBody {
   modelDir?: unknown;
@@ -112,7 +89,7 @@ function countOthersMoves(moves: MoveEntry[]): number {
   return moves.filter((move) => move.to.includes(`${path.sep}Others${path.sep}`)).length;
 }
 
-function categorizeOutputForMoves(moves: MoveEntry[], dryRun: boolean): CategorizeOutput {
+function categorizeOutputForMoves(moves: MoveEntry[], dryRun: boolean): CategorizeJsonOutput {
   return {
     dry_run: dryRun,
     moves,

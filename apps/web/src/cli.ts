@@ -2,6 +2,11 @@ import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import type {
+  CategorizeJsonOutput,
+  CategorizeProgressEvent,
+  OperationJsonOutput,
+} from "./types/categorize.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const HOIN_BINARY = process.platform === "win32" ? "hoin.exe" : "hoin";
@@ -28,30 +33,6 @@ async function resolveBin(): Promise<string> {
   return HOIN_BINARY;
 }
 
-export interface CategorizeJsonOutput {
-  dry_run: boolean;
-  moves: Array<{ from: string; to: string; class_key: string; confidence: number }>;
-  skipped: Array<{ file: string; reason: string; confidence?: number }>;
-  already_categorized: Array<{ file: string }>;
-  failed: Array<{ file: string; reason: string }>;
-  summary: {
-    scanned: number;
-    image_candidates: number;
-    moves: number;
-    routed_to_others: number;
-    low_confidence_skipped: number;
-    already_categorized: number;
-    failed: number;
-  };
-}
-
-export interface CategorizeProgressEvent {
-  event: "file_done";
-  completed: number;
-  total: number;
-  file: string;
-}
-
 export interface CategorizeOptions {
   modelDir: string;
   targetDir: string;
@@ -60,10 +41,6 @@ export interface CategorizeOptions {
   minConfidence?: number;
   selectedFiles?: string[];
   onProgress?: (event: CategorizeProgressEvent) => void;
-}
-
-export interface OperationJsonOutput {
-  moves: Array<{ from: string; to: string; class_key: string; confidence: number }>;
 }
 
 export async function runApply(plan: CategorizeJsonOutput): Promise<OperationJsonOutput> {
