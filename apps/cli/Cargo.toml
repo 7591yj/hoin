@@ -15,6 +15,7 @@ clap.workspace = true
 image.workspace = true
 metadata-schema = { path = "../../packages/metadata-schema" }
 ort.workspace = true
+renamore.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tempfile.workspace = true

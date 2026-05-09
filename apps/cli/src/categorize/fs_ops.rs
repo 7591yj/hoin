@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::{fs, io, path::Path};
 
 use anyhow::{Context, Result};
 use serde::de::DeserializeOwned;
@@ -15,9 +15,17 @@ pub(super) fn move_file(source: &Path, destination: &Path) -> Result<()> {
         .context("destination has no parent directory")?;
     fs::create_dir_all(parent)
         .with_context(|| format!("create destination directory {}", parent.display()))?;
-    match fs::rename(source, destination) {
+    match renamore::rename_exclusive(source, destination) {
         Ok(()) => Ok(()),
-        Err(error) if is_cross_device_error(&error) => copy_then_unlink(source, destination),
+        Err(error) if rename_requires_copy_fallback(&error) => {
+            eprintln!(
+                "warn: using copy fallback for {} -> {} ({})",
+                source.display(),
+                destination.display(),
+                rename_fallback_reason(&error)
+            );
+            copy_then_unlink(source, destination)
+        }
         Err(error) => Err(error).with_context(|| {
             format!(
                 "move image from {} to {}",
@@ -28,14 +36,25 @@ pub(super) fn move_file(source: &Path, destination: &Path) -> Result<()> {
     }
 }
 
-fn is_cross_device_error(error: &std::io::Error) -> bool {
-    matches!(error.raw_os_error(), Some(18) | Some(17))
+fn rename_requires_copy_fallback(error: &io::Error) -> bool {
+    matches!(
+        error.kind(),
+        io::ErrorKind::CrossesDevices | io::ErrorKind::Unsupported
+    )
+}
+
+fn rename_fallback_reason(error: &io::Error) -> &'static str {
+    match error.kind() {
+        io::ErrorKind::CrossesDevices => "cross-device rename",
+        io::ErrorKind::Unsupported => "unsupported atomic rename",
+        _ => "rename failed",
+    }
 }
 
 pub(super) fn copy_then_unlink(source: &Path, destination: &Path) -> Result<()> {
-    fs::copy(source, destination).with_context(|| {
+    copy_file_exclusive(source, destination).with_context(|| {
         format!(
-            "copy image from {} to {} after cross-filesystem rename failed",
+            "copy image from {} to {}",
             source.display(),
             destination.display()
         )
@@ -54,6 +73,21 @@ pub(super) fn copy_then_unlink(source: &Path, destination: &Path) -> Result<()> 
     fs::remove_file(source)
         .with_context(|| format!("remove source image {} after copy", source.display()))?;
     Ok(())
+}
+
+fn copy_file_exclusive(source: &Path, destination: &Path) -> io::Result<u64> {
+    let mut source_file = fs::File::open(source)?;
+    let mut destination_file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(destination)?;
+    let bytes = io::copy(&mut source_file, &mut destination_file)?;
+
+    if let Ok(metadata) = source_file.metadata() {
+        destination_file.set_permissions(metadata.permissions())?;
+    }
+
+    Ok(bytes)
 }
 
 fn sync_directory(directory: &Path) {

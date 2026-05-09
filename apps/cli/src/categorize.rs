@@ -461,6 +461,21 @@ mod tests {
     }
 
     #[test]
+    fn copy_then_unlink_does_not_overwrite_existing_destination() {
+        let temp = tempfile::tempdir().unwrap();
+        let source = temp.path().join("input.png");
+        fs::write(&source, b"source").unwrap();
+        let destination = temp.path().join("JP/04/Amane Kanata/input.png");
+        fs::create_dir_all(destination.parent().unwrap()).unwrap();
+        fs::write(&destination, b"destination").unwrap();
+
+        copy_then_unlink(&source, &destination).unwrap_err();
+
+        assert_eq!(fs::read(&source).unwrap(), b"source");
+        assert_eq!(fs::read(&destination).unwrap(), b"destination");
+    }
+
+    #[test]
     fn move_file_places_image_in_destination() {
         let temp = tempfile::tempdir().unwrap();
         let source = temp.path().join("input.png");
@@ -471,6 +486,21 @@ mod tests {
 
         assert!(!source.exists());
         assert_eq!(fs::read(&destination).unwrap(), b"image");
+    }
+
+    #[test]
+    fn move_file_does_not_overwrite_existing_destination() {
+        let temp = tempfile::tempdir().unwrap();
+        let source = temp.path().join("input.png");
+        fs::write(&source, b"source").unwrap();
+        let destination = temp.path().join("JP/04/Amane Kanata/input.png");
+        fs::create_dir_all(destination.parent().unwrap()).unwrap();
+        fs::write(&destination, b"destination").unwrap();
+
+        move_file(&source, &destination).unwrap_err();
+
+        assert_eq!(fs::read(&source).unwrap(), b"source");
+        assert_eq!(fs::read(&destination).unwrap(), b"destination");
     }
 
     fn move_entry(from: &Path, to: &Path) -> MoveEntry {
