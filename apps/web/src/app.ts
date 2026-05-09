@@ -6,17 +6,14 @@ import { initCategorizeFlow } from "./app/categorize-flow.ts";
 import { initSession } from "./app/session.ts";
 import { createThumbnailLoader } from "./app/thumbnails.ts";
 import { initDirectoryPicker } from "./app/directory-picker.ts";
+import { initKeyboardShortcuts } from "./app/keyboard-binds.ts";
 import type { CategorizeResult } from "./types/categorize.ts";
 
-//  Types
-
-//  State
 let pendingPreview: CategorizeResult | null = null;
-// Map from absolute file path → { class_key, confidence } after dry-run
 let previewMap: Map<string, { class_key: string; confidence: number }> = new Map();
 let allowedRoots: string[] = [];
 let selectedFiles: Set<string> = new Set();
-//  DOM refs
+
 const modelsRootInput = el<HTMLInputElement>("models-root");
 const scanModelsBtn = el<HTMLButtonElement>("scan-models-btn");
 const modelSelect = el<HTMLSelectElement>("model-select");
@@ -31,6 +28,7 @@ const categorizeBtn = el<HTMLButtonElement>("categorize-btn");
 const revertBtn = el<HTMLButtonElement>("revert-btn");
 const confirmBtn = el<HTMLButtonElement>("confirm-btn");
 const cancelBtn = el<HTMLButtonElement>("cancel-btn");
+const shortcutsHelpBtn = el<HTMLButtonElement>("shortcuts-help-btn");
 
 const thumbnailsEl = el<HTMLDivElement>("thumbnails");
 const previewPanel = el<HTMLDivElement>("preview-panel");
@@ -45,7 +43,6 @@ const statusProgressLabel = el<HTMLSpanElement>("status-progress-label");
 const statusProgressTrack = el<HTMLDivElement>("status-progress-track");
 const statusProgressFill = el<HTMLDivElement>("status-progress-fill");
 
-//  Helpers
 function setStatus(msg: string, loading = false): void {
   statusText.textContent = msg;
   statusBar.classList.toggle("loading", loading);
@@ -77,7 +74,6 @@ function setSelectedFiles(paths: Iterable<string>): void {
   updateActionButtons();
 }
 
-//  Model scanning
 scanModelsBtn.addEventListener("click", () => {
   initModelScanner({
     apiFetch,
@@ -89,7 +85,6 @@ scanModelsBtn.addEventListener("click", () => {
   });
 });
 
-//  Thumbnails
 const loadThumbnails = createThumbnailLoader({
   apiFetch,
   targetDirInput,
@@ -172,4 +167,18 @@ initDirectoryPicker({
   getAllowedRoots: () => allowedRoots,
   getServerCwd: () => serverCwd,
 });
+
+const _disposeKeyboardShortcuts = initKeyboardShortcuts({
+  helpButton: shortcutsHelpBtn,
+  categorizeBtn,
+  confirmBtn,
+  cancelBtn,
+  previewPanel,
+  getSelectedFiles: () => selectedFiles,
+  setSelectedFiles,
+  getPendingPreview: () => pendingPreview,
+  updatePreviewPanel,
+  setStatus,
+});
+
 updateActionButtons();
