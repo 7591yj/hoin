@@ -3,6 +3,7 @@ export interface MoveEntry {
   to: string;
   class_key: string;
   confidence: number;
+  routed_to_others?: boolean;
 }
 
 export interface SkippedEntry {

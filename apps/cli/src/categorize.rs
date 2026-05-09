@@ -194,10 +194,10 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
 
                 let final_destination = resolve_collision(&destination);
 
-                if relative_destination
+                let routed_to_others = relative_destination
                     .components()
-                    .any(|component| component.as_os_str() == "Others")
-                {
+                    .any(|component| component.as_os_str() == "Others");
+                if routed_to_others {
                     summary.routed_to_others += 1;
                 }
 
@@ -208,6 +208,7 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
                             to: final_destination,
                             class_key: classification.class_key,
                             confidence: classification.confidence,
+                            routed_to_others,
                         });
                     } else {
                         println!(
@@ -226,6 +227,7 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
                             to: final_destination,
                             class_key: classification.class_key,
                             confidence: classification.confidence,
+                            routed_to_others,
                         });
                     } else {
                         println!(
@@ -493,6 +495,7 @@ mod tests {
             to: to.to_path_buf(),
             class_key: "class".to_string(),
             confidence: 0.9,
+            routed_to_others: false,
         }
     }
 

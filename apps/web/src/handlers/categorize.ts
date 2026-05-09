@@ -39,7 +39,9 @@ function isMoveEntry(move: unknown): move is MoveEntry {
     typeof (move as MoveEntry).to === "string" &&
     typeof (move as MoveEntry).class_key === "string" &&
     typeof (move as MoveEntry).confidence === "number" &&
-    Number.isFinite((move as MoveEntry).confidence)
+    Number.isFinite((move as MoveEntry).confidence) &&
+    ((move as MoveEntry).routed_to_others === undefined ||
+      typeof (move as MoveEntry).routed_to_others === "boolean")
   );
 }
 
@@ -86,7 +88,7 @@ function isWithinDirectory(candidate: string, dir: string): boolean {
 }
 
 function countOthersMoves(moves: MoveEntry[]): number {
-  return moves.filter((move) => move.to.includes(`${path.sep}Others${path.sep}`)).length;
+  return moves.filter((move) => move.routed_to_others === true).length;
 }
 
 function categorizeOutputForMoves(moves: MoveEntry[], dryRun: boolean): CategorizeJsonOutput {

@@ -19,6 +19,8 @@ pub(crate) struct MoveEntry {
     pub(crate) to: PathBuf,
     pub(crate) class_key: String,
     pub(crate) confidence: f32,
+    #[serde(default)]
+    pub(crate) routed_to_others: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
