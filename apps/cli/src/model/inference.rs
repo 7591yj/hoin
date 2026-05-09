@@ -13,7 +13,11 @@ pub(super) fn top_probability(logits: &[f32]) -> Result<(usize, f32)> {
 }
 
 pub(super) fn extract_logits(outputs: &ort::session::SessionOutputs<'_>) -> Result<Vec<f32>> {
-    let (_, logits) = outputs[0]
+    let output = outputs
+        .values()
+        .next()
+        .context("model produced no outputs")?;
+    let (_, logits) = output
         .try_extract_tensor::<f32>()
         .context("extract logits tensor from ONNX output")?;
     Ok(logits.to_vec())
