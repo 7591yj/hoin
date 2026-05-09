@@ -1,6 +1,6 @@
 use std::{
     fs,
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
 };
 
 use anyhow::{Context, Result, bail};
@@ -74,11 +74,16 @@ impl ModelPackage {
         let onnx = manifest
             .onnx
             .unwrap_or_else(|| PathBuf::from(format!("{}.onnx", manifest.name)));
-        let onnx_data = manifest.onnx_data;
+        let onnx_path = resolve_manifest_artifact_path(root, "onnx", &onnx)?;
+        let onnx_data_path = manifest
+            .onnx_data
+            .as_deref()
+            .map(|path| resolve_manifest_artifact_path(root, "onnx_data", path))
+            .transpose()?;
 
         Ok(Self {
-            onnx_path: root.join(onnx),
-            onnx_data_path: onnx_data.map(|path| root.join(path)),
+            onnx_path,
+            onnx_data_path,
             name: manifest.name,
             root: root.to_path_buf(),
         })
@@ -101,6 +106,33 @@ impl ModelPackage {
             onnx_data_path: onnx_data_path.is_file().then_some(onnx_data_path),
         })
     }
+}
+
+fn resolve_manifest_artifact_path(root: &Path, field: &str, path: &Path) -> Result<PathBuf> {
+    if path.components().any(|component| {
+        matches!(
+            component,
+            Component::Prefix(_) | Component::RootDir | Component::ParentDir
+        )
+    }) {
+        bail!(
+            "model manifest field '{field}' must be a relative path inside the model package"
+        );
+    }
+
+    let joined = root.join(path);
+    let resolved = joined
+        .canonicalize()
+        .with_context(|| format!("resolve model manifest field '{field}' path {}", joined.display()))?;
+
+    if !resolved.starts_with(root) {
+        bail!(
+            "model manifest field '{field}' resolves outside the model package: {}",
+            joined.display()
+        );
+    }
+
+    Ok(resolved)
 }
 
 pub(crate) fn print_model_info(requested_dir: Option<&Path>) -> Result<()> {
