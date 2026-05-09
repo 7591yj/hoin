@@ -195,11 +195,11 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
                 let routed_to_others = relative_destination
                     .components()
                     .any(|component| component.as_os_str() == "Others");
-                if routed_to_others {
-                    summary.routed_to_others += 1;
-                }
 
                 if args.dry_run {
+                    if routed_to_others {
+                        summary.routed_to_others += 1;
+                    }
                     if args.json {
                         json_moves.push(MoveEntry {
                             from: source,
@@ -217,8 +217,31 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
                             classification.confidence
                         );
                     }
+                    summary.moved += 1;
                 } else {
-                    move_file(&source, &final_destination)?;
+                    if let Err(error) = move_file(&source, &final_destination) {
+                        summary.failed += 1;
+                        if args.json {
+                            json_failed.push(FailedEntry {
+                                file: source,
+                                reason: format!(
+                                    "failed to move to {}: {error:#}",
+                                    final_destination.display()
+                                ),
+                            });
+                        } else {
+                            println!(
+                                "warn: failed to move {} -> {}: {error:#}",
+                                source.display(),
+                                final_destination.display()
+                            );
+                        }
+                        continue;
+                    }
+
+                    if routed_to_others {
+                        summary.routed_to_others += 1;
+                    }
                     if args.json {
                         json_moves.push(MoveEntry {
                             from: source,
@@ -236,9 +259,8 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
                             classification.confidence
                         );
                     }
+                    summary.moved += 1;
                 }
-
-                summary.moved += 1;
             }
             Err(error) => {
                 summary.failed += 1;
