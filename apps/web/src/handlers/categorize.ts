@@ -184,17 +184,16 @@ export async function handleCategorizePreview(req: Request, _url: URL): Promise<
         };
       },
     });
-    const filtered = output;
     session.categorizeProgress = {
       phase: "preview",
       state: "done",
-      completed: filtered.summary.scanned,
-      total: filtered.summary.scanned,
-      message: `Prepared ${filtered.summary.moves} move(s) from ${filtered.summary.scanned} scanned image(s).`,
+      completed: output.summary.scanned,
+      total: output.summary.scanned,
+      message: `Prepared ${output.summary.moves} move(s) from ${output.summary.scanned} scanned image(s).`,
       startedAt: session.categorizeProgress.startedAt,
       updatedAt: Date.now(),
     };
-    return jsonResponse(200, filtered);
+    return jsonResponse(200, output);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     session.categorizeProgress = {
