@@ -1,5 +1,5 @@
 import { runApply, runCategorize } from "../cli.ts";
-import { resolveAllowedPath } from "../allowed-paths.ts";
+import { allowedPathErrorStatus, resolveAllowedPath } from "../allowed-paths.ts";
 import { session } from "../session.ts";
 import { jsonResponse } from "../router.ts";
 import type { CategorizeJsonOutput, MoveEntry } from "../types/categorize.ts";
@@ -205,8 +205,7 @@ export async function handleCategorizePreview(req: Request, _url: URL): Promise<
       startedAt: session.categorizeProgress.startedAt,
       updatedAt: Date.now(),
     };
-    const status = message.includes("outside allowed roots") ? 403 : 400;
-    return jsonResponse(status, { error: message });
+    return jsonResponse(allowedPathErrorStatus(error, 400), { error: message });
   }
 }
 
@@ -250,7 +249,6 @@ export async function handleCategorizeApply(req: Request, _url: URL): Promise<Re
       startedAt: session.categorizeProgress.startedAt,
       updatedAt: Date.now(),
     };
-    const status = message.includes("outside allowed roots") ? 403 : 400;
-    return jsonResponse(status, { error: message });
+    return jsonResponse(allowedPathErrorStatus(error, 400), { error: message });
   }
 }

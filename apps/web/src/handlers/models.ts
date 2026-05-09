@@ -1,7 +1,7 @@
 import { readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { resolveAllowedPath } from "../allowed-paths.ts";
+import { allowedPathErrorStatus, resolveAllowedPath } from "../allowed-paths.ts";
 import { jsonResponse } from "../router.ts";
 
 export async function handleModels(_req: Request, url: URL): Promise<Response> {
@@ -13,8 +13,7 @@ export async function handleModels(_req: Request, url: URL): Promise<Response> {
     allowedRoot = await resolveAllowedPath(root);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const status = message.includes("outside allowed roots") ? 403 : 400;
-    return jsonResponse(status, { error: message });
+    return jsonResponse(allowedPathErrorStatus(error, 400), { error: message });
   }
 
   let entries: string[];

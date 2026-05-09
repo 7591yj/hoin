@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { resolveAllowedPath } from "../allowed-paths.ts";
+import { allowedPathErrorStatus, resolveAllowedPath } from "../allowed-paths.ts";
 
 const MIME: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -22,8 +22,7 @@ export async function handleThumbnail(_req: Request, url: URL): Promise<Response
     allowedFilePath = await resolveAllowedPath(filePath);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const status = message.includes("outside allowed roots") ? 403 : 404;
-    return new Response(message, { status });
+    return new Response(message, { status: allowedPathErrorStatus(error, 404) });
   }
 
   if (!existsSync(allowedFilePath)) return new Response("not found", { status: 404 });
