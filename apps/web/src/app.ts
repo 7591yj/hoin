@@ -27,7 +27,9 @@ let progressPollTimer: number | null = null;
 
 //  DOM refs
 function el<T extends HTMLElement>(id: string): T {
-  return document.getElementById(id) as T;
+  const element = document.getElementById(id);
+  if (!element) throw new Error(`Missing DOM element: ${id}`);
+  return element as T;
 }
 
 const modelsRootInput = el<HTMLInputElement>("models-root");
