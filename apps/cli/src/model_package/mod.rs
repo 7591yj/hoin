@@ -115,15 +115,16 @@ fn resolve_manifest_artifact_path(root: &Path, field: &str, path: &Path) -> Resu
             Component::Prefix(_) | Component::RootDir | Component::ParentDir
         )
     }) {
-        bail!(
-            "model manifest field '{field}' must be a relative path inside the model package"
-        );
+        bail!("model manifest field '{field}' must be a relative path inside the model package");
     }
 
     let joined = root.join(path);
-    let resolved = joined
-        .canonicalize()
-        .with_context(|| format!("resolve model manifest field '{field}' path {}", joined.display()))?;
+    let resolved = joined.canonicalize().with_context(|| {
+        format!(
+            "resolve model manifest field '{field}' path {}",
+            joined.display()
+        )
+    })?;
 
     if !resolved.starts_with(root) {
         bail!(

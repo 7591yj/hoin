@@ -70,10 +70,7 @@ fn rejects_manifest_artifact_absolute_path() {
     fs::write(&outside, b"onnx").unwrap();
     fs::write(
         model_dir.join(MODEL_MANIFEST),
-        format!(
-            r#"{{"name":"example","onnx":"{}"}}"#,
-            outside.display()
-        ),
+        format!(r#"{{"name":"example","onnx":"{}"}}"#, outside.display()),
     )
     .unwrap();
 
