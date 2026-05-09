@@ -343,9 +343,16 @@ input[type="checkbox"] {
   text-align: left;
 }
 
-.thumb:hover {
+.thumb:hover,
+.thumb:focus-visible {
   transform: scale(1.03);
   box-shadow: var(--shadow-heavy);
+}
+
+.thumb:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  z-index: 1;
 }
 
 .thumb img {

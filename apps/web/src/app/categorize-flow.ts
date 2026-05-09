@@ -138,6 +138,7 @@ export function initCategorizeFlow(options: CategorizeFlowOptions): {
       updatePreviewPanel();
       await options.loadThumbnails();
       options.previewPanel.hidden = false;
+      document.querySelector<HTMLButtonElement>("#thumbnails > button.thumb[data-path]")?.focus();
       options.setStatus("Review planned moves and confirm.");
     } catch (e) {
       options.setStatus(`Error: ${(e as Error).message}`);
@@ -194,6 +195,7 @@ export function initCategorizeFlow(options: CategorizeFlowOptions): {
       options.summaryPanel.hidden = false;
       await options.refreshSession();
       await options.loadThumbnails();
+      document.querySelector<HTMLButtonElement>("#thumbnails > button.thumb[data-path]")?.focus();
       options.setStatus("Done.");
     } catch (e) {
       options.setStatus(`Error: ${(e as Error).message}`);

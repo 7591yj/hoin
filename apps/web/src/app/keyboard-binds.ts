@@ -89,9 +89,16 @@ function isTypingTarget(target: EventTarget | null): boolean {
 }
 
 function visibleThumbnailButtons(): HTMLButtonElement[] {
-  return [...document.querySelectorAll<HTMLButtonElement>(".thumb[data-path]")].filter(
-    (button) => !button.hidden && button.offsetParent !== null,
+  const thumbnailsRoot = document.getElementById("thumbnails");
+  const root = thumbnailsRoot ?? document;
+  return [...root.querySelectorAll<HTMLButtonElement>("button.thumb[data-path]")].filter(
+    (button) => !button.hidden && button.getClientRects().length > 0,
   );
+}
+
+function focusThumbnail(button: HTMLButtonElement): void {
+  button.focus({ preventScroll: true });
+  button.scrollIntoView({ block: "nearest", inline: "nearest" });
 }
 
 function createHelpDialog(): {
@@ -197,11 +204,18 @@ export function initKeyboardShortcuts(options: KeyboardShortcutOptions): () => v
     const thumbnails = visibleThumbnailButtons();
     if (thumbnails.length === 0) return false;
 
-    const current =
+    const activeThumbnail =
       document.activeElement instanceof HTMLButtonElement &&
       thumbnails.includes(document.activeElement)
         ? document.activeElement
-        : thumbnails[0];
+        : null;
+    if (!activeThumbnail) {
+      const firstThumbnail = thumbnails[0];
+      if (firstThumbnail) focusThumbnail(firstThumbnail);
+      return true;
+    }
+
+    const current = activeThumbnail;
 
     const items = thumbnails
       .map((thumbnail) => ({ thumbnail, rect: thumbnail.getBoundingClientRect() }))
@@ -234,7 +248,7 @@ export function initKeyboardShortcuts(options: KeyboardShortcutOptions): () => v
     if (key === "ArrowRight") {
       const target = currentRow[columnIndex + 1] ?? rows[rowIndex + 1]?.[0];
       if (!target) return false;
-      target.thumbnail.focus();
+      focusThumbnail(target.thumbnail);
       return true;
     }
 
@@ -242,7 +256,7 @@ export function initKeyboardShortcuts(options: KeyboardShortcutOptions): () => v
       const previousRow = rows[rowIndex - 1];
       const target = currentRow[columnIndex - 1] ?? previousRow?.[previousRow.length - 1];
       if (!target) return false;
-      target.thumbnail.focus();
+      focusThumbnail(target.thumbnail);
       return true;
     }
 
@@ -260,7 +274,7 @@ export function initKeyboardShortcuts(options: KeyboardShortcutOptions): () => v
         },
         row[Math.min(columnIndex, row.length - 1)] ?? row[0],
       );
-      target?.thumbnail.focus();
+      if (target) focusThumbnail(target.thumbnail);
     };
 
     if (key === "ArrowDown") {
@@ -272,7 +286,7 @@ export function initKeyboardShortcuts(options: KeyboardShortcutOptions): () => v
 
       const columnStart = rows.find((row) => row[columnIndex])?.[columnIndex];
       if (!columnStart) return false;
-      columnStart.thumbnail.focus();
+      focusThumbnail(columnStart.thumbnail);
       return true;
     }
 
@@ -284,7 +298,7 @@ export function initKeyboardShortcuts(options: KeyboardShortcutOptions): () => v
 
     const columnEnd = [...rows].reverse().find((row) => row[columnIndex])?.[columnIndex];
     if (!columnEnd) return false;
-    columnEnd.thumbnail.focus();
+    focusThumbnail(columnEnd.thumbnail);
     return true;
   }
 
