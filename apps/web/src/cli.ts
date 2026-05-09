@@ -79,7 +79,7 @@ async function runJsonFileCommand<TInput, TOutput>(
     await writeFile(jsonPath, JSON.stringify(payload), "utf8");
     const args = [command, ...(onProgress ? ["--progress-json"] : []), jsonPath];
     const { stdout } = await runHoin(args, (stderr) => readStderr(stderr, onProgress));
-    return JSON.parse(stdout) as TOutput;
+    return parseJson<TOutput>(stdout, `hoin ${command} JSON output`);
   } finally {
     await rm(tempDir, { recursive: true, force: true });
   }
@@ -118,10 +118,15 @@ export async function runCategorize(opts: CategorizeOptions): Promise<Categorize
 
   const { stdout } = await runHoin(args, (stderr) => readStderr(stderr, opts.onProgress));
 
+  return parseJson<CategorizeJsonOutput>(stdout, "hoin categorize JSON output");
+}
+
+function parseJson<T>(text: string, description: string): T {
   try {
-    return JSON.parse(stdout) as CategorizeJsonOutput;
+    return JSON.parse(text) as T;
   } catch {
-    throw new Error(`Failed to parse hoin JSON output: ${stdout}`);
+    const snippet = text.length > 2000 ? `${text.slice(0, 2000)}…` : text;
+    throw new Error(`Failed to parse ${description}: ${snippet}`);
   }
 }
 
