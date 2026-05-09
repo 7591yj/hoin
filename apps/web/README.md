@@ -2,6 +2,19 @@
 
 Web UI for [hoin-cli](../cli/README.md).
 
+## Trust model
+
+> [!WARNING]
+> **Local-only assumption:** This web UI and API are designed for local,
+> single-user operation. The caller and the file owner are assumed to be the
+> same trusted party.
+>
+> - The apply endpoint accepts the move plan directly from the client. It is **not**
+>   bound to a prior server-generated preview.
+> - If you plan to expose this UI to untrusted clients, you must tie apply to
+>   server-generated previews (e.g. store preview state server-side or sign the
+>   plan) before executing moves.
+
 ## Functions
 
 - Scans for model directories and browses target folders within allowed roots.
