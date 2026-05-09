@@ -18,7 +18,7 @@ pub(crate) use operations::{apply_plan, revert_operation};
 use discovery::{discover_explicit_files, discover_files};
 use fs_ops::move_file;
 use types::{
-    AlreadyCategorizedEntry, FailedEntry, JsonOutput, JsonSummary, MoveEntry, SkippedEntry, Summary,
+    AlreadyCategorizedEntry, FailedEntry, JsonOutput, MoveEntry, SkippedEntry, Summary,
 };
 
 #[derive(Debug, Serialize)]
@@ -84,22 +84,14 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
 
     if files.is_empty() {
         if args.json {
-            let output = JsonOutput {
-                dry_run: args.dry_run,
-                moves: vec![],
-                skipped: vec![],
-                already_categorized: vec![],
-                failed: vec![],
-                summary: JsonSummary {
-                    scanned: 0,
-                    image_candidates: 0,
-                    moves: 0,
-                    routed_to_others: 0,
-                    low_confidence_skipped: 0,
-                    already_categorized: 0,
-                    failed: 0,
-                },
-            };
+            let output = JsonOutput::from_summary(
+                args.dry_run,
+                &Summary::default(),
+                vec![],
+                vec![],
+                vec![],
+                vec![],
+            );
             println!("{}", serde_json::to_string(&output)?);
         } else {
             println!("No files found under {}", root.display());
@@ -263,22 +255,14 @@ pub(crate) fn categorize(args: CategorizeArgs) -> Result<()> {
     }
 
     if args.json {
-        let output = JsonOutput {
-            dry_run: args.dry_run,
-            moves: json_moves,
-            skipped: json_skipped,
-            already_categorized: json_already_categorized,
-            failed: json_failed,
-            summary: JsonSummary {
-                scanned: summary.scanned,
-                image_candidates: summary.image_candidates,
-                moves: summary.moved,
-                routed_to_others: summary.routed_to_others,
-                low_confidence_skipped: summary.low_confidence_skipped,
-                already_categorized: summary.already_categorized,
-                failed: summary.failed,
-            },
-        };
+        let output = JsonOutput::from_summary(
+            args.dry_run,
+            &summary,
+            json_moves,
+            json_skipped,
+            json_already_categorized,
+            json_failed,
+        );
         println!("{}", serde_json::to_string(&output)?);
     } else {
         print_summary(&summary, args.dry_run);
@@ -513,22 +497,13 @@ mod tests {
     }
 
     fn plan_with(moves: Vec<MoveEntry>) -> JsonOutput {
-        JsonOutput {
-            dry_run: true,
-            summary: JsonSummary {
-                scanned: moves.len(),
-                image_candidates: moves.len(),
-                moves: moves.len(),
-                routed_to_others: 0,
-                low_confidence_skipped: 0,
-                already_categorized: 0,
-                failed: 0,
-            },
-            moves,
-            skipped: vec![],
-            already_categorized: vec![],
-            failed: vec![],
-        }
+        let summary = Summary {
+            scanned: moves.len(),
+            image_candidates: moves.len(),
+            moved: moves.len(),
+            ..Summary::default()
+        };
+        JsonOutput::from_summary(true, &summary, moves, vec![], vec![], vec![])
     }
 
     fn write_json(path: &Path, value: &impl serde::Serialize) {
