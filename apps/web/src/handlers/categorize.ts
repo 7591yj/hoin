@@ -2,7 +2,7 @@ import { runApply, runCategorize } from "../cli.ts";
 import { allowedPathErrorStatus, resolveAllowedPath } from "../allowed-paths.ts";
 import { session } from "../session.ts";
 import { jsonResponse } from "../router.ts";
-import type { CategorizeJsonOutput, MoveEntry } from "../types/categorize.ts";
+import type { ApplyJsonOutput, CategorizeJsonOutput, MoveEntry } from "../types/categorize.ts";
 import { realpath } from "node:fs/promises";
 import path from "node:path";
 
@@ -92,21 +92,31 @@ function countOthersMoves(moves: MoveEntry[]): number {
   return moves.filter((move) => move.routed_to_others === true).length;
 }
 
-function categorizeOutputForMoves(moves: MoveEntry[], dryRun: boolean): CategorizeJsonOutput {
+function applyPlanForMoves(moves: MoveEntry[]): CategorizeJsonOutput {
   return {
-    dry_run: dryRun,
+    dry_run: true,
     moves,
     skipped: [],
     already_categorized: [],
     failed: [],
     summary: {
-      scanned: moves.length,
-      image_candidates: moves.length,
+      scanned: 0,
+      image_candidates: 0,
       moves: moves.length,
       routed_to_others: countOthersMoves(moves),
       low_confidence_skipped: 0,
       already_categorized: 0,
       failed: 0,
+    },
+  };
+}
+
+function applyOutputForMoves(moves: MoveEntry[]): ApplyJsonOutput {
+  return {
+    moves,
+    summary: {
+      applied: moves.length,
+      routed_to_others: countOthersMoves(moves),
     },
   };
 }
@@ -247,11 +257,11 @@ export async function handleCategorizeApply(req: Request, _url: URL): Promise<Re
     }
 
     setApplyProgress(0, resolvedMoves.length);
-    const operation = await runApply(categorizeOutputForMoves(resolvedMoves, true), (event) => {
+    const operation = await runApply(applyPlanForMoves(resolvedMoves), (event) => {
       setApplyProgress(event.completed, event.total);
     });
     const appliedMoves = operation.moves;
-    const output = categorizeOutputForMoves(appliedMoves, false);
+    const output = applyOutputForMoves(appliedMoves);
 
     session.lastOperation =
       appliedMoves.length === 0

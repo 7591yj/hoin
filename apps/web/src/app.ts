@@ -1,5 +1,10 @@
 import { dirname, basename, parentDir } from "./path-utils.ts";
-import type { CategorizeProgress, CategorizeResult, MoveEntry } from "./types/categorize.ts";
+import type {
+  ApplyJsonOutput,
+  CategorizeProgress,
+  CategorizeResult,
+  MoveEntry,
+} from "./types/categorize.ts";
 
 //  Types
 
@@ -433,7 +438,7 @@ confirmBtn.addEventListener("click", async () => {
   confirmBtn.disabled = true;
 
   try {
-    const result = await apiFetch<CategorizeResult>("/api/categorize/apply", {
+    const result = await apiFetch<ApplyJsonOutput>("/api/categorize/apply", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -446,7 +451,7 @@ confirmBtn.addEventListener("click", async () => {
     });
     pendingPreview = null;
     previewMap = new Map();
-    renderSummary(result.summary);
+    renderApplySummary(result.summary);
     summaryPanel.hidden = false;
     await refreshSession();
     await loadThumbnails();
@@ -470,15 +475,7 @@ cancelBtn.addEventListener("click", () => {
 });
 
 //  Summary
-function renderSummary(s: CategorizeResult["summary"]): void {
-  const items: [string, number][] = [
-    ["Scanned", s.scanned],
-    ["Moved", s.moves],
-    ["Others", s.routed_to_others],
-    ["Low conf.", s.low_confidence_skipped],
-    ["Already done", s.already_categorized],
-    ["Failed", s.failed],
-  ];
+function renderSummaryItems(items: [string, number][]): void {
   summaryGrid.innerHTML = items
     .map(
       ([label, val]) => `
@@ -486,6 +483,24 @@ function renderSummary(s: CategorizeResult["summary"]): void {
   `,
     )
     .join("");
+}
+
+function renderSummary(s: CategorizeResult["summary"]): void {
+  renderSummaryItems([
+    ["Scanned", s.scanned],
+    ["Moved", s.moves],
+    ["Others", s.routed_to_others],
+    ["Low conf.", s.low_confidence_skipped],
+    ["Already done", s.already_categorized],
+    ["Failed", s.failed],
+  ]);
+}
+
+function renderApplySummary(s: ApplyJsonOutput["summary"]): void {
+  renderSummaryItems([
+    ["Applied", s.applied],
+    ["Others", s.routed_to_others],
+  ]);
 }
 
 //  Revert

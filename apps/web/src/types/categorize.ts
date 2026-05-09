@@ -42,6 +42,16 @@ export interface CategorizeJsonOutput {
 
 export type CategorizeResult = CategorizeJsonOutput;
 
+export interface ApplySummary {
+  applied: number;
+  routed_to_others: number;
+}
+
+export interface ApplyJsonOutput {
+  moves: MoveEntry[];
+  summary: ApplySummary;
+}
+
 export interface CategorizeProgressEvent {
   event: "file_done" | "move_done";
   completed: number;
