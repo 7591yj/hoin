@@ -1,10 +1,8 @@
-import { runCategorize } from "../cli.ts";
+import { runApply, runCategorize } from "../cli.ts";
 import { resolveAllowedPath } from "../allowed-paths.ts";
 import { session } from "../session.ts";
 import { jsonResponse } from "../router.ts";
-import { access, mkdir } from "node:fs/promises";
 import path from "node:path";
-import { moveFile } from "../file-move.ts";
 
 interface MoveEntry {
   from: string;
@@ -47,18 +45,41 @@ async function parseBody(req: Request): Promise<CategorizeBody> {
   }
 }
 
-function validateBody(body: CategorizeBody):
-  | {
-      modelDir: string;
-      targetDir: string;
-      ja: boolean;
-      minConfidence: number;
-      selectedFiles: string[];
-      moves: MoveEntry[];
-    }
-  | { error: string } {
+type ValidatedBody = {
+  modelDir: string;
+  targetDir: string;
+  ja: boolean;
+  minConfidence: number;
+  selectedFiles: string[];
+  moves: MoveEntry[];
+};
+
+function isMoveEntry(move: unknown): move is MoveEntry {
+  return (
+    !!move &&
+    typeof move === "object" &&
+    typeof (move as MoveEntry).from === "string" &&
+    typeof (move as MoveEntry).to === "string" &&
+    typeof (move as MoveEntry).class_key === "string" &&
+    typeof (move as MoveEntry).confidence === "number" &&
+    Number.isFinite((move as MoveEntry).confidence)
+  );
+}
+
+function validateBody(body: CategorizeBody): ValidatedBody | { error: string } {
   if (typeof body.modelDir !== "string" || !body.modelDir) return { error: "modelDir required" };
   if (typeof body.targetDir !== "string" || !body.targetDir) return { error: "targetDir required" };
+
+  const minConfidence = body.minConfidence ?? 0.3;
+  if (
+    typeof minConfidence !== "number" ||
+    !Number.isFinite(minConfidence) ||
+    minConfidence < 0 ||
+    minConfidence > 1
+  ) {
+    return { error: "minConfidence must be a finite number between 0.0 and 1.0" };
+  }
+
   if (
     body.selectedFiles !== undefined &&
     (!Array.isArray(body.selectedFiles) ||
@@ -68,16 +89,7 @@ function validateBody(body: CategorizeBody):
   }
   if (
     body.moves !== undefined &&
-    (!Array.isArray(body.moves) ||
-      body.moves.some(
-        (move) =>
-          !move ||
-          typeof move !== "object" ||
-          typeof move.from !== "string" ||
-          typeof move.to !== "string" ||
-          typeof move.class_key !== "string" ||
-          typeof move.confidence !== "number",
-      ))
+    (!Array.isArray(body.moves) || body.moves.some((move) => !isMoveEntry(move)))
   ) {
     return { error: "moves must be an array of move entries" };
   }
@@ -85,7 +97,7 @@ function validateBody(body: CategorizeBody):
     modelDir: body.modelDir,
     targetDir: body.targetDir,
     ja: body.ja === true,
-    minConfidence: typeof body.minConfidence === "number" ? body.minConfidence : 0.3,
+    minConfidence,
     selectedFiles: (body.selectedFiles as string[] | undefined) ?? [],
     moves: (body.moves as MoveEntry[] | undefined) ?? [],
   };
@@ -94,6 +106,58 @@ function validateBody(body: CategorizeBody):
 function isWithinDirectory(candidate: string, dir: string): boolean {
   const relative = path.relative(dir, candidate);
   return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function countOthersMoves(moves: MoveEntry[]): number {
+  return moves.filter((move) => move.to.includes(`${path.sep}Others${path.sep}`)).length;
+}
+
+function categorizeOutputForMoves(moves: MoveEntry[], dryRun: boolean): CategorizeOutput {
+  return {
+    dry_run: dryRun,
+    moves,
+    skipped: [],
+    already_categorized: [],
+    failed: [],
+    summary: {
+      scanned: moves.length,
+      image_candidates: moves.length,
+      moves: moves.length,
+      routed_to_others: countOthersMoves(moves),
+      low_confidence_skipped: 0,
+      already_categorized: 0,
+      failed: 0,
+    },
+  };
+}
+
+async function resolveMove(move: MoveEntry, targetDir: string): Promise<MoveEntry> {
+  const from = await resolveAllowedPath(move.from);
+  const to = path.resolve(move.to);
+
+  if (!isWithinDirectory(from, targetDir)) {
+    throw new Error(`move source is outside target directory: ${from}`);
+  }
+  if (!isWithinDirectory(to, targetDir)) {
+    throw new Error(`move destination is outside target directory: ${to}`);
+  }
+
+  return { ...move, from, to };
+}
+
+function setApplyProgress(completed: number, total: number, state: "running" | "done" = "running") {
+  session.categorizeProgress = {
+    phase: "apply",
+    state,
+    completed,
+    total,
+    message:
+      state === "done"
+        ? `Applied ${completed} move(s).`
+        : `Applying ${completed}/${total} move(s)…`,
+    startedAt: session.categorizeProgress.startedAt ?? Date.now(),
+    updatedAt: Date.now(),
+  };
 }
 
 export async function handleCategorizePreview(req: Request, _url: URL): Promise<Response> {
@@ -177,76 +241,17 @@ export async function handleCategorizeApply(req: Request, _url: URL): Promise<Re
 
   try {
     const targetDir = await resolveAllowedPath(validated.targetDir);
-    const appliedMoves: MoveEntry[] = [];
-    const failed: Array<{ file: string; reason: string }> = [];
-    session.categorizeProgress = {
-      phase: "apply",
-      state: "running",
-      completed: 0,
-      total: validated.moves.length,
-      message: `Applying 0/${validated.moves.length} move(s)…`,
-      startedAt: Date.now(),
-      updatedAt: Date.now(),
-    };
+    const resolvedMoves: MoveEntry[] = [];
+    setApplyProgress(0, validated.moves.length);
 
     for (const move of validated.moves) {
-      const from = await resolveAllowedPath(move.from);
-      const to = path.resolve(move.to);
-
-      if (!isWithinDirectory(from, targetDir)) {
-        throw new Error(`move source is outside target directory: ${from}`);
-      }
-      if (!isWithinDirectory(to, targetDir)) {
-        throw new Error(`move destination is outside target directory: ${to}`);
-      }
-
-      try {
-        await access(to);
-        failed.push({ file: from, reason: `destination already exists: ${to}` });
-        continue;
-      } catch {
-        // Destination does not exist.
-      }
-
-      try {
-        await mkdir(path.dirname(to), { recursive: true });
-        await moveFile(from, to);
-        appliedMoves.push({ ...move, from, to });
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : String(error);
-        failed.push({ file: from, reason });
-      }
-
-      const completed = appliedMoves.length + failed.length;
-      session.categorizeProgress = {
-        phase: "apply",
-        state: "running",
-        completed,
-        total: validated.moves.length,
-        message: `Applying ${completed}/${validated.moves.length} move(s)…`,
-        startedAt: session.categorizeProgress.startedAt,
-        updatedAt: Date.now(),
-      };
+      resolvedMoves.push(await resolveMove(move, targetDir));
+      setApplyProgress(resolvedMoves.length, validated.moves.length);
     }
 
-    const output: CategorizeOutput = {
-      dry_run: false,
-      moves: appliedMoves,
-      skipped: [],
-      already_categorized: [],
-      failed,
-      summary: {
-        scanned: validated.moves.length,
-        image_candidates: validated.moves.length,
-        moves: appliedMoves.length,
-        routed_to_others: appliedMoves.filter((move) =>
-          move.to.includes(`${path.sep}Others${path.sep}`),
-        ).length,
-        low_confidence_skipped: 0,
-        already_categorized: 0,
-        failed: failed.length,
-      },
-    };
+    const operation = await runApply(categorizeOutputForMoves(resolvedMoves, true));
+    const appliedMoves = operation.moves;
+    const output = categorizeOutputForMoves(appliedMoves, false);
 
     session.lastOperation =
       appliedMoves.length === 0
@@ -255,15 +260,7 @@ export async function handleCategorizeApply(req: Request, _url: URL): Promise<Re
             moves: appliedMoves,
             timestamp: Date.now(),
           };
-    session.categorizeProgress = {
-      phase: "apply",
-      state: "done",
-      completed: validated.moves.length,
-      total: validated.moves.length,
-      message: `Applied ${appliedMoves.length} move(s)${failed.length > 0 ? `, ${failed.length} failed` : ""}.`,
-      startedAt: session.categorizeProgress.startedAt,
-      updatedAt: Date.now(),
-    };
+    setApplyProgress(appliedMoves.length, validated.moves.length, "done");
 
     return jsonResponse(200, output);
   } catch (error) {

@@ -1,6 +1,4 @@
-import { mkdir } from "node:fs/promises";
-import path from "node:path";
-import { moveFile } from "../file-move.ts";
+import { runRevert } from "../cli.ts";
 import { session } from "../session.ts";
 import { jsonResponse } from "../router.ts";
 
@@ -9,21 +7,12 @@ export async function handleRevert(_req: Request, _url: URL): Promise<Response> 
     return jsonResponse(400, { error: "no operation to revert" });
   }
 
-  const { moves } = session.lastOperation;
-  let reverted = 0;
-
-  for (const move of [...moves].reverse()) {
-    const destDir = path.dirname(move.from);
-    try {
-      await mkdir(destDir, { recursive: true });
-      await moveFile(move.to, move.from);
-      reverted++;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      return jsonResponse(500, { error: `failed to revert ${move.to}: ${message}`, reverted });
-    }
+  try {
+    const result = await runRevert({ moves: session.lastOperation.moves });
+    session.lastOperation = null;
+    return jsonResponse(200, result);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return jsonResponse(500, { error: message });
   }
-
-  session.lastOperation = null;
-  return jsonResponse(200, { reverted });
 }
