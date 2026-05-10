@@ -60,19 +60,35 @@ pub(super) fn copy_then_unlink(source: &Path, destination: &Path) -> Result<()> 
         )
     })?;
 
-    fs::OpenOptions::new()
+    if let Err(error) = fs::OpenOptions::new()
         .write(true)
         .open(destination)
         .and_then(|file| file.sync_all())
-        .with_context(|| format!("sync copied image {}", destination.display()))?;
+    {
+        cleanup_copied_destination(destination, "sync copied image")?;
+        return Err(error).with_context(|| format!("sync copied image {}", destination.display()));
+    }
 
     if let Some(parent) = destination.parent() {
         sync_directory(parent);
     }
 
-    fs::remove_file(source)
-        .with_context(|| format!("remove source image {} after copy", source.display()))?;
+    if let Err(error) = fs::remove_file(source) {
+        cleanup_copied_destination(destination, "remove source image after copy")?;
+        return Err(error)
+            .with_context(|| format!("remove source image {} after copy", source.display()));
+    }
+
     Ok(())
+}
+
+fn cleanup_copied_destination(destination: &Path, failed_operation: &str) -> Result<()> {
+    fs::remove_file(destination).with_context(|| {
+        format!(
+            "remove copied destination {} after failed {failed_operation}",
+            destination.display()
+        )
+    })
 }
 
 fn copy_file_exclusive(source: &Path, destination: &Path) -> io::Result<u64> {

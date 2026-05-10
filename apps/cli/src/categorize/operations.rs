@@ -10,7 +10,7 @@ use super::{
     types::{JsonOutput, OperationOutput},
 };
 
-pub(crate) fn apply_plan(plan_path: &Path) -> Result<()> {
+pub(crate) fn apply_plan(plan_path: &Path, progress_json: bool) -> Result<()> {
     let plan: JsonOutput = read_json_file(plan_path, "plan")?;
     preflight_moves(
         plan.moves
@@ -20,7 +20,8 @@ pub(crate) fn apply_plan(plan_path: &Path) -> Result<()> {
         "destination",
     )?;
 
-    for move_entry in &plan.moves {
+    let total = plan.moves.len();
+    for (index, move_entry) in plan.moves.iter().enumerate() {
         move_file(&move_entry.from, &move_entry.to).with_context(|| {
             format!(
                 "apply may be partial after failed move {} -> {}",
@@ -28,6 +29,7 @@ pub(crate) fn apply_plan(plan_path: &Path) -> Result<()> {
                 move_entry.to.display()
             )
         })?;
+        emit_progress(progress_json, "move_done", index + 1, total, &move_entry.to)?;
     }
 
     println!(
@@ -37,7 +39,7 @@ pub(crate) fn apply_plan(plan_path: &Path) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn revert_operation(operation_path: &Path) -> Result<()> {
+pub(crate) fn revert_operation(operation_path: &Path, progress_json: bool) -> Result<()> {
     let operation: OperationOutput = read_json_file(operation_path, "operation")?;
     preflight_moves(
         operation
@@ -48,6 +50,7 @@ pub(crate) fn revert_operation(operation_path: &Path) -> Result<()> {
         "original path",
     )?;
 
+    let total = operation.moves.len();
     let mut reverted = 0usize;
     for move_entry in operation.moves.iter().rev() {
         move_file(&move_entry.to, &move_entry.from).with_context(|| {
@@ -58,9 +61,37 @@ pub(crate) fn revert_operation(operation_path: &Path) -> Result<()> {
             )
         })?;
         reverted += 1;
+        emit_progress(
+            progress_json,
+            "move_done",
+            reverted,
+            total,
+            &move_entry.from,
+        )?;
     }
 
     println!("{}", serde_json::json!({ "reverted": reverted }));
+    Ok(())
+}
+
+fn emit_progress(
+    enabled: bool,
+    event: &str,
+    completed: usize,
+    total: usize,
+    file: &Path,
+) -> Result<()> {
+    if enabled {
+        eprintln!(
+            "{}",
+            serde_json::json!({
+                "event": event,
+                "completed": completed,
+                "total": total,
+                "file": file.display().to_string(),
+            })
+        );
+    }
     Ok(())
 }
 

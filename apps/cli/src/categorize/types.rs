@@ -19,6 +19,8 @@ pub(crate) struct MoveEntry {
     pub(crate) to: PathBuf,
     pub(crate) class_key: String,
     pub(crate) confidence: f32,
+    #[serde(default)]
+    pub(crate) routed_to_others: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -51,6 +53,20 @@ pub(super) struct JsonSummary {
     pub(super) failed: usize,
 }
 
+impl JsonSummary {
+    pub(super) fn from_summary(summary: &Summary) -> Self {
+        Self {
+            scanned: summary.scanned,
+            image_candidates: summary.image_candidates,
+            moves: summary.moved,
+            routed_to_others: summary.routed_to_others,
+            low_confidence_skipped: summary.low_confidence_skipped,
+            already_categorized: summary.already_categorized,
+            failed: summary.failed,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub(super) struct JsonOutput {
     pub(super) dry_run: bool,
@@ -59,6 +75,26 @@ pub(super) struct JsonOutput {
     pub(super) already_categorized: Vec<AlreadyCategorizedEntry>,
     pub(super) failed: Vec<FailedEntry>,
     pub(super) summary: JsonSummary,
+}
+
+impl JsonOutput {
+    pub(super) fn from_summary(
+        dry_run: bool,
+        summary: &Summary,
+        moves: Vec<MoveEntry>,
+        skipped: Vec<SkippedEntry>,
+        already_categorized: Vec<AlreadyCategorizedEntry>,
+        failed: Vec<FailedEntry>,
+    ) -> Self {
+        Self {
+            dry_run,
+            moves,
+            skipped,
+            already_categorized,
+            failed,
+            summary: JsonSummary::from_summary(summary),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

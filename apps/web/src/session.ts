@@ -1,23 +1,8 @@
-export interface MoveEntry {
-  from: string;
-  to: string;
-  class_key: string;
-  confidence: number;
-}
+import type { CategorizeProgress, MoveEntry } from "./types/categorize.ts";
 
 interface LastOperation {
   moves: MoveEntry[];
   timestamp: number;
-}
-
-export interface CategorizeProgress {
-  phase: "preview" | "apply";
-  state: "idle" | "running" | "done" | "error";
-  completed: number;
-  total: number | null;
-  message: string;
-  startedAt: number | null;
-  updatedAt: number | null;
 }
 
 export const session: {

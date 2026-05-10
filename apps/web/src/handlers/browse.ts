@@ -1,6 +1,6 @@
 import { readdir, stat } from "node:fs/promises";
 import path from "node:path";
-import { resolveAllowedPath } from "../allowed-paths.ts";
+import { allowedPathErrorStatus, resolveAllowedPath } from "../allowed-paths.ts";
 import { jsonResponse } from "../router.ts";
 
 const IMAGE_EXTS = new Set([".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp"]);
@@ -54,7 +54,6 @@ export async function handleBrowse(_req: Request, url: URL): Promise<Response> {
     return jsonResponse(200, { entries });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const status = message.includes("outside allowed roots") ? 403 : 400;
-    return jsonResponse(status, { error: message });
+    return jsonResponse(allowedPathErrorStatus(error, 400), { error: message });
   }
 }

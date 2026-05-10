@@ -29,12 +29,16 @@ pub(crate) enum Command {
 pub(crate) struct PlanArgs {
     #[arg(value_name = "PLAN_JSON")]
     pub(crate) plan: PathBuf,
+    #[arg(long, help = "Emit newline-delimited JSON progress events to stderr")]
+    pub(crate) progress_json: bool,
 }
 
 #[derive(Debug, Clone, Args)]
 pub(crate) struct OperationArgs {
     #[arg(value_name = "OPERATION_JSON")]
     pub(crate) operation: PathBuf,
+    #[arg(long, help = "Emit newline-delimited JSON progress events to stderr")]
+    pub(crate) progress_json: bool,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -62,7 +66,10 @@ pub(crate) struct CategorizeArgs {
     pub(crate) file: Vec<PathBuf>,
     #[arg(long, help = "Emit newline-delimited JSON progress events to stderr")]
     pub(crate) progress_json: bool,
-    #[arg(long, help = "Exit with an error when any file fails to process")]
+    #[arg(
+        long,
+        help = "Exit with an error when any file fails during dry-run; non-dry-run fails by default"
+    )]
     pub(crate) fail_on_failed: bool,
     #[arg(long, help = "Exit with an error when any file is skipped")]
     pub(crate) fail_on_skipped: bool,

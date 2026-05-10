@@ -1,32 +1,9 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { access, mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { ApplyJsonOutput, CategorizeResult } from "./types/categorize.ts";
 import { handleRequest } from "./web.ts";
 import { workspaceVersion } from "./version.ts";
-
-interface MoveEntry {
-  from: string;
-  to: string;
-  class_key: string;
-  confidence: number;
-}
-
-interface CategorizeResult {
-  dry_run: boolean;
-  moves: MoveEntry[];
-  skipped: Array<{ file: string; reason: string; confidence?: number }>;
-  already_categorized: Array<{ file: string }>;
-  failed: Array<{ file: string; reason: string }>;
-  summary: {
-    scanned: number;
-    image_candidates: number;
-    moves: number;
-    routed_to_others: number;
-    low_confidence_skipped: number;
-    already_categorized: number;
-    failed: number;
-  };
-}
 
 const repoRoot = path.resolve(import.meta.dir, "../../..");
 const smokeDir = path.join(repoRoot, ".tmp", "hoin-smoke");
@@ -116,14 +93,13 @@ test("web smoke test exercises CLI integration against /tmp/hoin-smoke", async (
   expect(previewSelected.moves).toHaveLength(1);
   expect(previewSelected.moves[0]?.from).toBe(samplePathA);
 
-  const apply = await postJson<CategorizeResult>("/api/categorize/apply", {
+  const apply = await postJson<ApplyJsonOutput>("/api/categorize/apply", {
     modelDir,
     targetDir: smokeDir,
     minConfidence: 0,
     moves: previewSelected.moves,
   });
-  expect(apply.dry_run).toBe(false);
-  expect(apply.failed).toHaveLength(0);
+  expect(apply.summary).toEqual({ applied: 1, routed_to_others: 0 });
   expect(apply.moves).toHaveLength(1);
   const appliedMove = apply.moves[0];
   if (!appliedMove) {

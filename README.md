@@ -18,6 +18,11 @@ To run the local web UI from a source checkout:
 just serve
 ```
 
+> [!WARNING]
+> The web UI is designed for **local, single-user operation** on your own files.
+> See [`apps/web/README.md`](apps/web/README.md#trust-model) for security
+> considerations before exposing it to untrusted clients.
+
 For model-specific usage, see the README in `models/<name>/`.
 Release artifacts ship with separate READMEs for CLI archives and model archives.
 
