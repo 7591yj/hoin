@@ -65,11 +65,10 @@ impl ModelPackage {
 
     fn from_manifest(root: &Path) -> Result<Self> {
         let manifest_path = root.join(MODEL_MANIFEST);
-        let manifest: ModelManifest = serde_json::from_slice(
-            &fs::read(&manifest_path)
-                .with_context(|| format!("read model manifest {}", manifest_path.display()))?,
-        )
-        .with_context(|| format!("parse model manifest {}", manifest_path.display()))?;
+        let manifest_bytes = fs::read(&manifest_path)
+            .with_context(|| format!("read model manifest {}", manifest_path.display()))?;
+        let manifest: ModelManifest = parse_model_manifest(&manifest_bytes)
+            .with_context(|| format!("parse model manifest {}", manifest_path.display()))?;
 
         let onnx = manifest
             .onnx
@@ -105,6 +104,22 @@ impl ModelPackage {
             onnx_path,
             onnx_data_path: onnx_data_path.is_file().then_some(onnx_data_path),
         })
+    }
+}
+
+fn parse_model_manifest(bytes: &[u8]) -> Result<ModelManifest, serde_json::Error> {
+    match serde_json::from_slice(bytes) {
+        Ok(manifest) => Ok(manifest),
+        Err(error) if error.is_syntax() => {
+            // Retry manifests with unescaped Windows backslashes so path
+            // validation can report the actual issue.
+            let Ok(text) = std::str::from_utf8(bytes) else {
+                return Err(error);
+            };
+            let escaped = text.replace('\\', "\\\\");
+            serde_json::from_str(&escaped).map_err(|_| error)
+        }
+        Err(error) => Err(error),
     }
 }
 
