@@ -1,5 +1,10 @@
 # hoin
 
+> [!NOTE]
+> This project will soon be migrated to polyrepo.
+> 
+> The very repository you are visiting will be archived.
+
 Local web UI / CLI for image character classification
 
 ## Quick Start
