@@ -17,6 +17,9 @@
       <header>
         <h1>hoin</h1>
         <span class="badge" id="version-badge"></span>
+        <button id="shortcuts-help-btn" class="header-help" type="button" title="Show keyboard shortcuts (?)">
+          Shortcuts <kbd>?</kbd>
+        </button>
       </header>
 
       <main>
@@ -27,8 +30,8 @@
             <div class="section-title">Model</div>
             <div class="field">
               <label>Models root directory</label>
-              <div style="display:flex;gap:6px;align-items:center">
-                <div class="input-row" style="flex:1">
+              <div class="model-root-row">
+                <div class="input-row input-row--fill">
                   <input
                     id="models-root"
                     type="text"
@@ -39,15 +42,15 @@
                 <button id="scan-models-btn">Scan</button>
               </div>
             </div>
-            <div class="field" style="margin-top: 10px">
+            <div class="field field--spaced">
               <label>Selected model</label>
               <select id="model-select">
                 <option value="">- none -</option>
               </select>
             </div>
-            <details class="model-dir-details" style="margin-top: 8px">
+            <details class="model-dir-details model-dir-details--spaced">
               <summary>Or enter model dir directly</summary>
-              <div class="input-row" style="margin-top: 6px">
+              <div class="input-row input-row--summary">
                 <input
                   id="model-dir-input"
                   type="text"
@@ -89,21 +92,20 @@
                 step="0.05"
               />
             </div>
-            <div class="toggle-row" style="margin-top: 10px">
+            <div class="toggle-row toggle-row--spaced">
               <input type="checkbox" id="ja-toggle" />
               <label for="ja-toggle">Japanese character names</label>
             </div>
           </section>
 
           <!-- Actions -->
-          <section style="margin-top: auto">
-            <button id="categorize-btn" class="primary" style="width: 100%">
+          <section class="sidebar-actions">
+            <button id="categorize-btn" class="primary full-width">
               Categorize
             </button>
             <button
               id="revert-btn"
-              class="danger"
-              style="width: 100%; margin-top: 10px; display: none"
+              class="danger full-width revert-button"
             >
               Revert last
             </button>
