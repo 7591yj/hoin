@@ -1,5 +1,8 @@
 {
   "name": "hoin-web",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
   "description": "Web UI for hoin",
   "scripts": {
     "build:frontend": "bun build src/app.ts --outdir public --target browser --minify",
@@ -8,7 +11,9 @@
     "test": "bun test",
     "typecheck": "bunx tsc --noEmit"
   },
-  "devDependencies": {
-    "@types/bun": "latest"
+  "dependencies": {
+    "@jsquash/jpeg": "^1.6.0",
+    "@jsquash/png": "^3.1.1",
+    "@jsquash/webp": "^1.5.0"
   }
 }
