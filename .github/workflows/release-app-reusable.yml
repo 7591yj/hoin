@@ -50,6 +50,10 @@ jobs:
       - name: Cache cargo artifacts
         uses: Swatinem/rust-cache@v2
 
+      - name: Install web dependencies
+        working-directory: apps/web
+        run: bun install --frozen-lockfile
+
       - name: Build release binary
         run: cargo build --release --locked --package hoin-cli --target ${{ matrix.target.target }}
 
